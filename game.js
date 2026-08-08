@@ -451,7 +451,7 @@ function handleSkip() {
 function handleHint() {
   if (modalOpen || roundConcluded) return;
   const ch = challenges[currentChallenge];
-  hintEl.textContent = "Hint: " + ch.hint;
+  hintEl.textContent = ch.hint;
   hintEl.classList.remove("hidden");
   hintBtn.disabled = true;
 }
@@ -497,7 +497,7 @@ function concludeRound(type) {
       break;
   }
 
-  showExplanation(ch);
+  showExplanation(ch, type);
   input.disabled = true;
   submitBtn.disabled = true;
   skipBtn.disabled = true;
@@ -509,9 +509,9 @@ function concludeRound(type) {
   setTimeout(() => advanceChallenge(), 2000);
 }
 
-function showExplanation(ch) {
-  const isBoss = ch.level === "boss";
-  explanationEl.textContent = (isBoss ? "PATTERN BREAKDOWN: " : "WHY IT MATCHES: ") + ch.explanation;
+function showExplanation(ch, type) {
+  const label = type === "correct" ? "WHY IT MATCHES: " : "PATTERN BREAKDOWN: ";
+  explanationEl.textContent = label + ch.explanation;
   explanationEl.classList.remove("hidden");
 }
 

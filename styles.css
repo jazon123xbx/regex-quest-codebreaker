@@ -672,6 +672,19 @@ body {
   line-height: 1.5;
 }
 
+.mission-requirement {
+  margin-top: 0.5rem;
+}
+
+.mission-label {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+}
+
 /* ═══ Input Row ══════════════════════════════════════════════════════════════ */
 .input-row {
   display: flex;
