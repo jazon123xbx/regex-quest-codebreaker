@@ -129,7 +129,7 @@ Verifies:
 - Pool uniqueness across 50 iterations × 5 modes
 - Boss placement only in Rubric mode
 - Scoring formula edge cases
-- **Total: 337 automated test cases**
+- **Total: 340 automated test cases**
 
 ## Architecture
 
