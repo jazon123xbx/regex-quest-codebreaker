@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Regex Quest — Codebreaker Challenge</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- ── Welcome Screen ──────────────────────────────────────────────── -->
+    <section id="welcome-screen" class="screen active">
+      <div class="terminal-window">
+        <div class="terminal-bar">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+        <div class="terminal-body welcome-body">
+          <h1 class="title-glow">REGEX QUEST</h1>
+          <p class="subtitle">Codebreaker Challenge</p>
+          <div class="divider"></div>
+          <p class="welcome-text">
+            Decode each cipher by entering a string that matches the secret pattern.
+            <br><br>
+            Score up to <strong>10 points</strong> per challenge — the faster you decode, the higher your score.
+            <br><br>
+            9 regular challenges + 1 final Boss await.
+          </p>
+          <button id="start-btn" class="btn btn-primary">START MISSION</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Game Screen ─────────────────────────────────────────────────── -->
+    <section id="game-screen" class="screen">
+      <div class="terminal-window">
+        <div class="terminal-bar">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+        <div class="terminal-body game-body">
+
+          <div class="top-bar">
+            <span id="difficulty" class="badge badge-easy">Easy</span>
+            <span id="progress" class="progress-text">1 / 10</span>
+            <div class="score-timer">
+              <span class="timer-label">Time</span>
+              <span id="timer" class="timer-value">0s</span>
+              <span class="score-label">Score</span>
+              <span id="score" class="score-value">0</span>
+            </div>
+          </div>
+
+          <h2 id="challenge-title" class="challenge-title">Vault Code</h2>
+          <p id="challenge-words" class="challenge-words">Exactly three digits</p>
+
+          <div class="regex-box">
+            <span class="regex-label">Pattern</span>
+            <code id="regex-display" class="regex-code">\\d{3}</code>
+          </div>
+
+          <div id="feedback" class="feedback" aria-live="polite"></div>
+
+          <div class="input-row">
+            <label for="answer-input" class="sr-only">Enter your decoded string</label>
+            <input
+              type="text"
+              id="answer-input"
+              class="answer-input"
+              placeholder="Enter your string…"
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <button id="submit-btn" class="btn btn-primary">DECODE</button>
+          </div>
+
+          <div class="action-row">
+            <button id="hint-btn" class="btn btn-secondary">HINT</button>
+            <button id="skip-btn" class="btn btn-secondary">SKIP</button>
+          </div>
+
+          <div id="hint-box" class="info-box hint-box hidden"></div>
+          <div id="explanation-box" class="info-box explanation-box hidden" aria-live="polite"></div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Results Screen ──────────────────────────────────────────────── -->
+    <section id="results-screen" class="screen">
+      <div class="terminal-window">
+        <div class="terminal-bar">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+        <div class="terminal-body results-body">
+          <h1 class="title-glow">MISSION COMPLETE</h1>
+          <div class="rank" id="rank-text">B — Apprentice Hacker</div>
+          <div class="final-score-row">
+            <span class="final-score-label">Final Score</span>
+            <span id="final-score" class="final-score-value">0</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat"><span class="stat-val" id="stat-correct">0</span><span class="stat-lbl">Correct</span></div>
+            <div class="stat"><span class="stat-val" id="stat-skipped">0</span><span class="stat-lbl">Skipped</span></div>
+            <div class="stat"><span class="stat-val" id="stat-best-streak">0</span><span class="stat-lbl">Best Streak</span></div>
+            <div class="stat"><span class="stat-val" id="stat-high-score">0</span><span class="stat-lbl">High Score</span></div>
+          </div>
+          <button id="play-again-btn" class="btn btn-primary">PLAY AGAIN</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
