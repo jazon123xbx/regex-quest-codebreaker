@@ -1,6 +1,4 @@
-/* ═══ Reset & Base ═══════════════════════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+/* ═══ 1. VARIABLES / THEME ═══════════════════════════════════════════════════ */
 :root {
   --bg: #07111F;
   --panel: #0D1726;
@@ -28,6 +26,9 @@
   --radius-sm: 6px;
 }
 
+/* ═══ 2. RESET / BASE ═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
   font-family: var(--font-sans);
   background: var(--bg);
@@ -40,7 +41,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ═══ Background Decorations ════════════════════════════════════════════════ */
+/* ═══ 3. BACKGROUND ═════════════════════════════════════════════════════════ */
 .bg-glow {
   position: fixed;
   top: -20%;
@@ -64,7 +65,8 @@ body {
   z-index: 0;
 }
 
-/* ═══ Container & Screens ════════════════════════════════════════════════════ */
+/* ═══ 4. SHARED COMPONENTS ══════════════════════════════════════════════════ */
+/* Container, screen switching, and reusable buttons. */
 .container {
   width: 100%;
   max-width: 900px;
@@ -83,69 +85,6 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ═══ Welcome Screen ═════════════════════════════════════════════════════════ */
-.welcome-inner {
-  text-align: center;
-  padding: 3rem 2rem;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 0 80px rgba(34, 211, 238, 0.04), 0 32px 80px rgba(0, 0, 0, 0.5);
-}
-
-.title-glow {
-  font-family: var(--font-mono);
-  font-size: 3rem;
-  font-weight: 900;
-  letter-spacing: 0.15em;
-  color: var(--cyan);
-  text-shadow: 0 0 30px rgba(34, 211, 238, 0.5), 0 0 60px rgba(34, 211, 238, 0.15);
-}
-
-.subtitle {
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  color: var(--muted);
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  margin-top: 0.4rem;
-}
-
-.tagline {
-  font-size: 1rem;
-  color: var(--text-dim);
-  margin-top: 1.5rem;
-  line-height: 1.8;
-  font-style: italic;
-}
-
-.divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cyan-dim), transparent);
-  margin: 2rem 0;
-}
-
-.team-credits {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  letter-spacing: 0.1em;
-  margin-bottom: 2rem;
-}
-
-.team-credits strong {
-  color: var(--cyan);
-  font-weight: 700;
-}
-
-.welcome-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  align-items: center;
-}
-
-/* ═══ Buttons ════════════════════════════════════════════════════════════════ */
 .btn {
   border: none;
   border-radius: var(--radius-sm);
@@ -210,7 +149,69 @@ body {
 .btn-icon:hover { border-color: var(--cyan-dim); color: var(--cyan); }
 .btn-icon.active { border-color: var(--cyan); color: var(--cyan); background: rgba(34,211,238,0.08); }
 
-/* ═══ Mission Select ═════════════════════════════════════════════════════════ */
+/* ═══ 5. WELCOME ════════════════════════════════════════════════════════════ */
+.welcome-inner {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 0 80px rgba(34, 211, 238, 0.04), 0 32px 80px rgba(0, 0, 0, 0.5);
+}
+
+.title-glow {
+  font-family: var(--font-mono);
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: var(--cyan);
+  text-shadow: 0 0 30px rgba(34, 211, 238, 0.5), 0 0 60px rgba(34, 211, 238, 0.15);
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  margin-top: 0.4rem;
+}
+
+.tagline {
+  font-size: 1rem;
+  color: var(--text-dim);
+  margin-top: 1.5rem;
+  line-height: 1.8;
+  font-style: italic;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan-dim), transparent);
+  margin: 2rem 0;
+}
+
+.team-credits {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 2rem;
+}
+
+.team-credits strong {
+  color: var(--cyan);
+  font-weight: 700;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+/* ═══ 6. MISSION SELECT ═════════════════════════════════════════════════════ */
 .mission-select-inner {
   padding: 2.5rem 2rem;
   background: var(--panel);
@@ -404,7 +405,7 @@ body {
   margin-top: 0.8rem;
 }
 
-/* ═══ Game Screen — HUD Bar ═════════════════════════════════════════════════ */
+/* ═══ 7. GAME HUD / COMMAND CENTER ══════════════════════════════════════════ */
 .hud-bar {
   display: flex;
   align-items: center;
@@ -461,7 +462,7 @@ body {
 
 .hud-score { color: var(--cyan); }
 
-/* ═══ Badge ══════════════════════════════════════════════════════════════════ */
+/* ── Difficulty Badges ────────────────────────────────────────────────────── */
 .badge {
   font-family: var(--font-mono);
   font-size: 0.6rem;
@@ -474,14 +475,8 @@ body {
 .badge-easy   { background: rgba(34,197,94,0.12); color: var(--success); border: 1px solid rgba(34,197,94,0.25); }
 .badge-medium { background: rgba(251,191,36,0.12); color: var(--boss); border: 1px solid rgba(251,191,36,0.25); }
 .badge-hard   { background: rgba(239,68,68,0.12); color: var(--error); border: 1px solid rgba(239,68,68,0.25); }
-.badge-boss   { background: rgba(245,158,11,0.15); color: var(--boss); border: 1px solid rgba(245,158,11,0.3); animation: bossPulse 2s ease-in-out infinite; }
 
-@keyframes bossPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
-  50%      { box-shadow: 0 0 14px 3px rgba(245,158,11,0.2); }
-}
-
-/* ═══ Command Center Grid ════════════════════════════════════════════════════ */
+/* ── Command Center Grid ──────────────────────────────────────────────────── */
 .command-center {
   display: grid;
   grid-template-columns: 180px 1fr 200px;
@@ -538,7 +533,7 @@ body {
   grid-row: 2;
 }
 
-/* ═══ Circular Timer ═════════════════════════════════════════════════════════ */
+/* ═══ 8. TIMER ══════════════════════════════════════════════════════════════ */
 .timer-ring-wrapper {
   position: relative;
   width: 120px;
@@ -618,7 +613,7 @@ body {
   letter-spacing: 0.08em;
 }
 
-/* ═══ Target Card ════════════════════════════════════════════════════════════ */
+/* ═══ 9. CHALLENGE CARD & INPUT ═════════════════════════════════════════════ */
 .target-card {
   background: var(--panel-alt);
   border: 1px solid var(--border);
@@ -627,11 +622,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-}
-
-.target-card.boss-card {
-  border-color: rgba(245, 158, 11, 0.3);
-  box-shadow: 0 0 24px rgba(245, 158, 11, 0.06);
 }
 
 .target-header {
@@ -651,8 +641,6 @@ body {
   letter-spacing: 0.15em;
 }
 
-.target-card.boss-card .target-label { color: var(--boss); }
-
 .challenge-title {
   font-family: var(--font-mono);
   font-size: 0.8rem;
@@ -671,18 +659,12 @@ body {
   padding: 0.4rem 0;
 }
 
-.target-card.boss-card .regex-code {
-  color: var(--boss);
-  text-shadow: 0 0 14px rgba(245, 158, 11, 0.3);
-}
-
 .challenge-words {
   font-size: 0.88rem;
   color: var(--text-dim);
   line-height: 1.5;
 }
 
-/* ═══ Input Row ══════════════════════════════════════════════════════════════ */
 .input-row {
   display: flex;
   gap: 0.5rem;
@@ -725,7 +707,7 @@ body {
   gap: 0.5rem;
 }
 
-/* ═══ Feedback ═══════════════════════════════════════════════════════════════ */
+/* ═══ 10. FEEDBACK ══════════════════════════════════════════════════════════ */
 .feedback {
   min-height: 1.4em;
   font-family: var(--font-mono);
@@ -839,7 +821,7 @@ body {
   to { opacity: 0; }
 }
 
-/* ═══ Progress Panel ═════════════════════════════════════════════════════════ */
+/* ═══ 11. PROGRESS ══════════════════════════════════════════════════════════ */
 .progress-header {
   display: flex;
   justify-content: space-between;
@@ -916,6 +898,40 @@ body {
   color: var(--text-muted);
 }
 
+.vault-line {
+  width: 2px;
+  height: 8px;
+  background: var(--border);
+  margin-left: 11px;
+}
+
+.vault-line.completed {
+  background: var(--cyan);
+}
+
+/* ═══ 12. BOSS ROUND ════════════════════════════════════════════════════════ */
+/* The Boss (Rubric mode only) reuses the base components with amber styling.
+   All rules below are strictly more specific than their base counterparts,
+   so moving them here does not change which rule wins the cascade. */
+.badge-boss   { background: rgba(245,158,11,0.15); color: var(--boss); border: 1px solid rgba(245,158,11,0.3); animation: bossPulse 2s ease-in-out infinite; }
+
+@keyframes bossPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+  50%      { box-shadow: 0 0 14px 3px rgba(245,158,11,0.2); }
+}
+
+.target-card.boss-card {
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.06);
+}
+
+.target-card.boss-card .target-label { color: var(--boss); }
+
+.target-card.boss-card .regex-code {
+  color: var(--boss);
+  text-shadow: 0 0 14px rgba(245, 158, 11, 0.3);
+}
+
 .vault-dot.boss-node {
   width: 28px;
   height: 28px;
@@ -936,18 +952,7 @@ body {
   color: #07111F;
 }
 
-.vault-line {
-  width: 2px;
-  height: 8px;
-  background: var(--border);
-  margin-left: 11px;
-}
-
-.vault-line.completed {
-  background: var(--cyan);
-}
-
-/* ═══ Results ════════════════════════════════════════════════════════════════ */
+/* ═══ 13. RESULTS ═══════════════════════════════════════════════════════════ */
 .results-inner {
   padding: 2.5rem 2rem;
   background: var(--panel);
@@ -1055,7 +1060,7 @@ body {
   align-items: center;
 }
 
-/* ═══ Modals ═════════════════════════════════════════════════════════════════ */
+/* ═══ 14. MODALS ════════════════════════════════════════════════════════════ */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1068,6 +1073,8 @@ body {
   padding: 1rem;
 }
 
+/* Kept right next to .modal-overlay so it always wins the cascade and a
+   closed modal never blocks the page behind it. */
 .modal-overlay.hidden {
   display: none;
 }
@@ -1219,16 +1226,14 @@ body {
   min-width: 120px;
 }
 
-/* ═══ Hidden Utility ═════════════════════════════════════════════════════════ */
+/* ═══ 15. ACCESSIBILITY ═════════════════════════════════════════════════════ */
 .hidden { display: none; }
 
-/* ═══ Focus Visible ══════════════════════════════════════════════════════════ */
 :focus-visible {
   outline: 2px solid var(--cyan);
   outline-offset: 2px;
 }
 
-/* ═══ Screen Reader Only ═════════════════════════════════════════════════════ */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1241,7 +1246,7 @@ body {
   border: 0;
 }
 
-/* ═══ Responsive — Tablet (768px) ════════════════════════════════════════════ */
+/* ═══ 16. RESPONSIVE ════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .command-center {
     grid-template-columns: 140px 1fr;
@@ -1285,7 +1290,6 @@ body {
   .timer-value { font-size: 1.6rem; }
 }
 
-/* ═══ Responsive — Mobile (520px) ════════════════════════════════════════════ */
 @media (max-width: 520px) {
   .container { max-width: 100%; }
 
@@ -1361,7 +1365,6 @@ body {
   .regex-code { font-size: 1.2rem; }
 }
 
-/* ═══ Responsive — Small Mobile (390px) ══════════════════════════════════════ */
 @media (max-width: 390px) {
   .title-glow { font-size: 1.6rem; letter-spacing: 0.1em; }
   .mode-grid { gap: 0.5rem; }
@@ -1373,7 +1376,7 @@ body {
   .hud-bar { flex-direction: column; gap: 0.3rem; }
 }
 
-/* ═══ Reduced Motion ═════════════════════════════════════════════════════════ */
+/* ═══ 17. REDUCED MOTION ════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
   .answer-input.shake { animation: none; }
   .badge-boss { animation: none; }

@@ -1,6 +1,5 @@
 import { fullMatch } from "./regex-utils.js";
 import {
-  buildChallengeSet,
   buildMissionSet,
   allChallenges,
   poolSizes
@@ -13,7 +12,56 @@ import {
   isModeHighScore
 } from "./storage.js";
 
-// ── Settings ───────────────────────────────────────────────────────────────
+// ============================================================
+// 1. CONFIGURATION & CONSTANTS
+// ============================================================
+
+// How often the round clock ticks, in milliseconds.
+const TIMER_INTERVAL_MS = 1000;
+
+// How long the result text stays up before the next challenge appears.
+const ROUND_TRANSITION_MS = 2000;
+
+// Rounds cap at 30 elapsed seconds on the ring display in unlimited modes.
+const RING_MAX_ELAPSED_SECONDS = 30;
+
+// Circumference of the timer ring (the SVG circle has radius 42).
+const CIRCUMFERENCE = 2 * Math.PI * 42;
+
+// Maximum points for solving one challenge correctly.
+const MAX_SCORE_PER_CHALLENGE = 10;
+
+// Display names used on the Results screen and Abort panel.
+const MODE_LABELS = {
+  rubric: "Rubric",
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+  custom: "Custom"
+};
+
+// Uppercase badges shown in the HUD.
+const MODE_BADGE_LABELS = {
+  rubric: "RUBRIC",
+  easy: "EASY",
+  medium: "MEDIUM",
+  hard: "HARD",
+  custom: "CUSTOM"
+};
+
+// Names used by the difficulty transition banner.
+const DIFFICULTY_TRANSITION_LABELS = {
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+  boss: "Boss"
+};
+
+// ============================================================
+// 2. GAME STATE
+// ============================================================
+
+// Settings chosen on the Mission Select screen.
 let gameSettings = {
   mode: "rubric",
   difficulty: "mixed",
@@ -21,7 +69,7 @@ let gameSettings = {
   roundLimit: null
 };
 
-// ── State ──────────────────────────────────────────────────────────────────
+// The active mission and its running totals.
 let currentChallenge = 0;
 let challenges = [];
 let totalScore = 0;
@@ -34,20 +82,34 @@ let skippedCount = 0;
 let timeoutCount = 0;
 let incorrectAttemptCount = 0;
 let responseTimes = [];
+
+// Becomes true once a round ends, until the next challenge renders.
+// This guarantees a round can only ever be scored/advanced once.
 let roundConcluded = false;
-let modalOpen = false;
-let modalTriggerButton = null;
-let soundEnabled = false;
+
+// The last shown difficulty, used to detect a difficulty change.
 let lastDifficulty = null;
 
-// Abort state
+// Generic modal (How to Play / Field Guide) state.
+let modalOpen = false;
+let modalTriggerButton = null;
+
+// Abort Mission modal state.
 let abortModalOpen = false;
 let abortTriggerButton = null;
+
+// Pending auto-advance after a round ends, plus timer pause bookkeeping.
 let advanceTimeoutId = null;
 let timerPausedAt = 0;
 let timerPaused = false;
 
-// ── DOM refs ───────────────────────────────────────────────────────────────
+// Sound effects toggle. Sound starts ON by default.
+let soundEnabled = true;
+
+// ============================================================
+// 3. DOM REFERENCES
+// ============================================================
+
 const $ = (sel) => document.querySelector(sel);
 
 // Screens
@@ -141,20 +203,51 @@ const abortModeEl = $("#abort-mode");
 const abortRoundEl = $("#abort-round");
 const abortScoreEl = $("#abort-score");
 
-// ── Sound system ───────────────────────────────────────────────────────────
+// ============================================================
+// 4. SOUND SYSTEM
+// ============================================================
+
+// Shared Web Audio context, created on first use.
 let audioCtx = null;
 
 function getAudioCtx() {
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audioCtx = new Ctx();
+  }
+  // Browsers start a fresh context "suspended" until the first user gesture;
+  // resume it so the first tone is audible without ever auto-playing on load.
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().catch(() => {});
   }
   return audioCtx;
 }
+
+// Initializes/resumes the audio context on the player's first interaction.
+// This is required because browsers block Web Audio until a user gesture.
+function unlockAudio() {
+  try {
+    const ctx = getAudioCtx();
+    if (ctx && ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+  } catch {
+    // Audio unavailable — the game still works silently.
+  }
+  document.removeEventListener("pointerdown", unlockAudio);
+  document.removeEventListener("keydown", unlockAudio);
+}
+
+// Do NOT play audio on load; just mark the context ready after first gesture.
+document.addEventListener("pointerdown", unlockAudio);
+document.addEventListener("keydown", unlockAudio);
 
 function playTone(freq, duration, type = "sine", volume = 0.15) {
   if (!soundEnabled) return;
   try {
     const ctx = getAudioCtx();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type;
@@ -166,7 +259,7 @@ function playTone(freq, duration, type = "sine", volume = 0.15) {
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + duration);
   } catch {
-    // audio unavailable
+    // Audio is unavailable — the game still works silently.
   }
 }
 
@@ -189,107 +282,24 @@ function playIncorrect() {
   playTone(180, 0.15, "square", 0.08);
 }
 
-// ── Timer ──────────────────────────────────────────────────────────────────
-const CIRCUMFERENCE = 2 * Math.PI * 42; // r=42
+// ============================================================
+// 5. SCREEN NAVIGATION
+// ============================================================
 
-function startTimer() {
-  if (timerInterval) clearInterval(timerInterval);
-  elapsedSeconds = 0;
-  updateTimerDisplay();
-  timerInterval = setInterval(() => {
-    elapsedSeconds++;
-    updateTimerDisplay();
-    if (gameSettings.roundLimit && elapsedSeconds >= gameSettings.roundLimit) {
-      handleTimeout();
-    }
-  }, 1000);
-}
-
-function stopTimer() {
-  clearInterval(timerInterval);
-  timerInterval = null;
-  if (advanceTimeoutId) {
-    clearTimeout(advanceTimeoutId);
-    advanceTimeoutId = null;
-  }
-}
-
-function updateTimerDisplay() {
-  const limit = gameSettings.roundLimit;
-  if (limit) {
-    // Countdown mode
-    const remaining = Math.max(0, limit - elapsedSeconds);
-    timerValue.textContent = remaining;
-    timerLabel.textContent = "REMAINING";
-    // Ring shows time depleting
-    const pct = elapsedSeconds / limit;
-    timerRingProgress.style.strokeDashoffset = String(CIRCUMFERENCE * pct);
-    // Color states
-    if (remaining <= 3) {
-      timerRingProgress.classList.add("critical");
-      timerRingProgress.classList.remove("warning");
-    } else if (remaining <= 6) {
-      timerRingProgress.classList.add("warning");
-      timerRingProgress.classList.remove("critical");
-    } else {
-      timerRingProgress.classList.remove("warning", "critical");
-    }
-  } else {
-    // Elapsed mode
-    timerValue.textContent = elapsedSeconds;
-    timerLabel.textContent = "ELAPSED";
-    // Ring fills up to 30s max display
-    const pct = Math.min(elapsedSeconds / 30, 1);
-    timerRingProgress.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - pct));
-    timerRingProgress.classList.remove("warning", "critical");
-  }
-}
-
-function handleTimeout() {
-  if (roundConcluded) return;
-  concludeRound("timeout");
-}
-
-// ── Abort Timer Management ───────────────────────────────────────────────────
-function pauseTimer() {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-    timerPausedAt = elapsedSeconds;
-    timerPaused = true;
-  }
-}
-
-function resumeTimer() {
-  if (timerPaused) {
-    timerPaused = false;
-    elapsedSeconds = timerPausedAt;
-    timerPausedAt = 0;
-    updateTimerDisplay();
-    timerInterval = setInterval(() => {
-      elapsedSeconds++;
-      updateTimerDisplay();
-      if (gameSettings.roundLimit && elapsedSeconds >= gameSettings.roundLimit) {
-        handleTimeout();
-      }
-    }, 1000);
-  }
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-function calcScore(seconds) {
-  return Math.max(0, 10 - Math.floor(seconds));
-}
-
+// Shows one screen (e.g. the game screen) and hides all others.
 function showScreen(screen) {
   screens.forEach((s) => s.classList.remove("active"));
   screen.classList.add("active");
 }
 
-// ── Mission Select ─────────────────────────────────────────────────────────
+// ============================================================
+// 6. MISSION SETUP
+// ============================================================
+
+// Selects a mission mode from the menu and updates the card highlights.
 function selectMode(mode) {
   gameSettings.mode = mode;
-  // Reset to undefined so buildMissionSet uses mode defaults
+  // Reset to undefined so buildMissionSet uses the mode defaults.
   if (mode !== "custom") {
     gameSettings.questionCount = undefined;
     gameSettings.roundLimit = undefined;
@@ -297,7 +307,7 @@ function selectMode(mode) {
   modeCards.forEach((c) => {
     c.classList.toggle("active", c.dataset.mode === mode);
   });
-  // Show/hide custom config
+  // Show/hide the Custom configuration panel.
   if (mode === "custom") {
     customConfig.classList.remove("hidden");
     updateCustomConfig();
@@ -306,17 +316,18 @@ function selectMode(mode) {
   }
 }
 
+// Keeps the player from requesting more questions than a pool has.
 function updateCustomConfig() {
   const diff = customDifficultySelect.value;
   const poolSize = diff === "mixed"
     ? poolSizes.easy + poolSizes.medium + poolSizes.hard
     : poolSizes[diff] || 0;
-  // Disable 10 option if pool < 10
+  // Disable the "10" option when the pool is smaller than 10.
   const count10Input = count10Option.querySelector("input");
   if (poolSize < 10) {
     count10Input.disabled = true;
     count10Option.classList.add("disabled");
-    // If 10 is checked, switch to 5
+    // If "10" was selected, fall back to "5".
     if (count10Input.checked) {
       count10Input.checked = false;
       document.querySelector('input[name="custom-count"][value="5"]').checked = true;
@@ -330,6 +341,7 @@ function updateCustomConfig() {
   }
 }
 
+// Reads the Custom mode controls into a mission settings object.
 function getCustomSettings() {
   const diff = customDifficultySelect.value;
   const countInput = document.querySelector('input[name="custom-count"]:checked');
@@ -344,7 +356,215 @@ function getCustomSettings() {
   };
 }
 
-// ── Progress rendering ─────────────────────────────────────────────────────
+// Resets every counter/flag that describes one mission or one round.
+// This is the single reset any "new game" path goes through.
+function resetState() {
+  currentChallenge = 0;
+  totalScore = 0;
+  currentStreak = 0;
+  bestStreak = 0;
+  correctCount = 0;
+  skippedCount = 0;
+  timeoutCount = 0;
+  incorrectAttemptCount = 0;
+  responseTimes = [];
+  roundConcluded = false;
+  lastDifficulty = null;
+  timerPausedAt = 0;
+  timerPaused = false;
+  abortModalOpen = false;
+  abortTriggerButton = null;
+}
+
+/**
+ * Builds the challenge list for the selected mission mode.
+ * @param {Object} settings Current mission settings.
+ * @returns {{ challenges: Array, config: Object }}
+ */
+function buildGame() {
+  const result = buildMissionSet(gameSettings);
+  challenges = result.challenges;
+  gameSettings.roundLimit = result.config.roundLimit;
+}
+
+// Starts a fresh mission: reset state, build challenges, render to screen.
+function startGame() {
+  resetState();
+  buildGame();
+  // HUD mode badge.
+  hudMode.textContent = MODE_BADGE_LABELS[gameSettings.mode] || "RUBRIC";
+  // Timer info.
+  if (gameSettings.roundLimit) {
+    timerInfoMode.textContent = gameSettings.roundLimit + "s LIMIT";
+  } else {
+    timerInfoMode.textContent = "UNLIMITED";
+  }
+  // Reset the ring.
+  timerRingProgress.style.strokeDashoffset = "0";
+  timerRingProgress.classList.remove("warning", "critical");
+  showScreen(gameScreen);
+  renderChallenge();
+  startTimer();
+}
+
+// ============================================================
+// 7. TIMER CONTROLLER
+// ============================================================
+
+// Starts the round timer at zero.
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  elapsedSeconds = 0;
+  updateTimerDisplay();
+  timerInterval = setInterval(tickTimer, TIMER_INTERVAL_MS);
+}
+
+// One clock tick: advance the clock, redraw, and time out at the limit.
+function tickTimer() {
+  elapsedSeconds++;
+  updateTimerDisplay();
+  if (gameSettings.roundLimit && elapsedSeconds >= gameSettings.roundLimit) {
+    handleTimeout();
+  }
+}
+
+// Stops the timer and clears any pending auto-advance.
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  if (advanceTimeoutId) {
+    clearTimeout(advanceTimeoutId);
+    advanceTimeoutId = null;
+  }
+}
+
+// Redraws the timer number, label, and ring for the current mode.
+function updateTimerDisplay() {
+  const limit = gameSettings.roundLimit;
+  if (limit) {
+    // Countdown mode: number goes down, ring depletes, colors warn.
+    const remaining = Math.max(0, limit - elapsedSeconds);
+    timerValue.textContent = remaining;
+    timerLabel.textContent = "REMAINING";
+    const pct = elapsedSeconds / limit;
+    timerRingProgress.style.strokeDashoffset = String(CIRCUMFERENCE * pct);
+    if (remaining <= 3) {
+      timerRingProgress.classList.add("critical");
+      timerRingProgress.classList.remove("warning");
+    } else if (remaining <= 6) {
+      timerRingProgress.classList.add("warning");
+      timerRingProgress.classList.remove("critical");
+    } else {
+      timerRingProgress.classList.remove("warning", "critical");
+    }
+  } else {
+    // Elapsed mode: number counts up, ring fills to 30s max.
+    timerValue.textContent = elapsedSeconds;
+    timerLabel.textContent = "ELAPSED";
+    const pct = Math.min(elapsedSeconds / RING_MAX_ELAPSED_SECONDS, 1);
+    timerRingProgress.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - pct));
+    timerRingProgress.classList.remove("warning", "critical");
+  }
+}
+
+// Ends the round as a timeout when the clock reaches the limit.
+function handleTimeout() {
+  if (roundConcluded) return;
+  concludeRound("timeout");
+}
+
+// Pauses the timer. While the Abort modal is open, the pause time must NOT
+// count against the player, so the exact elapsed value is remembered.
+function pauseTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    timerPausedAt = elapsedSeconds;
+    timerPaused = true;
+  }
+}
+
+// Resumes the paused timer from the exact value it had when paused.
+function resumeTimer() {
+  if (timerPaused) {
+    timerPaused = false;
+    elapsedSeconds = timerPausedAt;
+    timerPausedAt = 0;
+    updateTimerDisplay();
+    timerInterval = setInterval(tickTimer, TIMER_INTERVAL_MS);
+  }
+}
+
+// ============================================================
+// 8. CHALLENGE RENDERING
+// ============================================================
+
+// Displays the current challenge and resets the input/feedback UI.
+function renderChallenge() {
+  const ch = challenges[currentChallenge];
+  const isBoss = ch.level === "boss";
+  roundConcluded = false;
+
+  // Difficulty badge
+  const levelLabel = isBoss ? "BOSS" : ch.level.charAt(0).toUpperCase() + ch.level.slice(1);
+  difficultyEl.textContent = levelLabel;
+  difficultyEl.className = "badge badge-" + (isBoss ? "boss" : ch.level);
+
+  // HUD
+  hudChallengeEl.textContent = `${currentChallenge + 1} / ${challenges.length}`;
+  progressCounter.textContent = `${currentChallenge + 1} / ${challenges.length}`;
+
+  // Target card
+  titleEl.textContent = ch.title;
+  wordsEl.textContent = ch.words;
+  regexDisplayEl.textContent = ch.pattern;
+
+  // Boss styling
+  if (isBoss) {
+    targetCardEl.classList.add("boss-card");
+    targetLabelEl.textContent = "FINAL VAULT — BOSS REGEX";
+  } else {
+    targetCardEl.classList.remove("boss-card");
+    targetLabelEl.textContent = "TARGET PATTERN";
+  }
+
+  // Difficulty transition banner
+  if (lastDifficulty && lastDifficulty !== ch.level) {
+    showDifficultyTransition(lastDifficulty, ch.level);
+  }
+  lastDifficulty = ch.level;
+
+  // Progress path
+  renderProgress();
+
+  // Reset the answer UI for a fresh round
+  hintEl.classList.add("hidden");
+  hintEl.textContent = "";
+  feedbackEl.className = "feedback";
+  feedbackEl.textContent = "";
+  explanationEl.classList.add("hidden");
+  explanationEl.textContent = "";
+  input.value = "";
+  input.disabled = false;
+  input.focus();
+  submitBtn.disabled = false;
+  skipBtn.disabled = false;
+  hintBtn.disabled = false;
+  scoreEl.textContent = totalScore;
+  streakValueEl.textContent = currentStreak;
+  bestStreakValueEl.textContent = bestStreak;
+}
+
+// Shows a short banner when the challenge level changes mid-mission.
+function showDifficultyTransition(from, to) {
+  const banner = document.createElement("div");
+  banner.className = "difficulty-transition";
+  banner.textContent = `${DIFFICULTY_TRANSITION_LABELS[from] || from} → ${DIFFICULTY_TRANSITION_LABELS[to] || to}`;
+  feedbackEl.parentNode.insertBefore(banner, feedbackEl);
+  setTimeout(() => banner.remove(), 1500);
+}
+
+// Draws the vault node path: completed / current / upcoming rounds.
 function renderProgress() {
   vaultProgressEl.innerHTML = "";
   for (let i = 0; i < challenges.length; i++) {
@@ -376,97 +596,23 @@ function renderProgress() {
   }
 }
 
-// ── Game setup ─────────────────────────────────────────────────────────────
-function resetState() {
-  currentChallenge = 0;
-  totalScore = 0;
-  currentStreak = 0;
-  bestStreak = 0;
-  correctCount = 0;
-  skippedCount = 0;
-  timeoutCount = 0;
-  incorrectAttemptCount = 0;
-  responseTimes = [];
-  roundConcluded = false;
-  lastDifficulty = null;
-  timerPausedAt = 0;
-  timerPaused = false;
-  abortModalOpen = false;
-  abortTriggerButton = null;
+// ============================================================
+// 9. ANSWER VALIDATION
+// ============================================================
+
+/**
+ * Returns the score for a correctly solved challenge.
+ * Required formula: 10 points minus one point per whole elapsed second.
+ * @param {number} seconds Seconds spent on the round.
+ * @returns {number} Points earned, minimum 0.
+ */
+function calcScore(seconds) {
+  // Elapsed seconds is the scoring authority even when the display counts
+  // down — the clock always advances, so the score never goes out of sync.
+  return Math.max(0, MAX_SCORE_PER_CHALLENGE - Math.floor(seconds));
 }
 
-function buildGame() {
-  const result = buildMissionSet(gameSettings);
-  challenges = result.challenges;
-  gameSettings.roundLimit = result.config.roundLimit;
-}
-
-// ── Render challenge ───────────────────────────────────────────────────────
-function renderChallenge() {
-  const ch = challenges[currentChallenge];
-  const isBoss = ch.level === "boss";
-  roundConcluded = false;
-
-  // difficulty badge
-  const levelLabel = isBoss ? "BOSS" : ch.level.charAt(0).toUpperCase() + ch.level.slice(1);
-  difficultyEl.textContent = levelLabel;
-  difficultyEl.className = "badge badge-" + (isBoss ? "boss" : ch.level);
-
-  // HUD
-  hudChallengeEl.textContent = `${currentChallenge + 1} / ${challenges.length}`;
-  progressCounter.textContent = `${currentChallenge + 1} / ${challenges.length}`;
-
-  // target card
-  titleEl.textContent = ch.title;
-  wordsEl.textContent = ch.words;
-  regexDisplayEl.textContent = ch.pattern;
-
-  // boss styling
-  if (isBoss) {
-    targetCardEl.classList.add("boss-card");
-    targetLabelEl.textContent = "FINAL VAULT — BOSS REGEX";
-  } else {
-    targetCardEl.classList.remove("boss-card");
-    targetLabelEl.textContent = "TARGET PATTERN";
-  }
-
-  // difficulty transition banner
-  if (lastDifficulty && lastDifficulty !== ch.level) {
-    showDifficultyTransition(lastDifficulty, ch.level);
-  }
-  lastDifficulty = ch.level;
-
-  // progress
-  renderProgress();
-
-  // reset UI
-  hintEl.classList.add("hidden");
-  hintEl.textContent = "";
-  feedbackEl.className = "feedback";
-  feedbackEl.textContent = "";
-  explanationEl.classList.add("hidden");
-  explanationEl.textContent = "";
-  input.value = "";
-  input.disabled = false;
-  input.focus();
-  submitBtn.disabled = false;
-  skipBtn.disabled = false;
-  hintBtn.disabled = false;
-  scoreEl.textContent = totalScore;
-  streakValueEl.textContent = currentStreak;
-  bestStreakValueEl.textContent = bestStreak;
-}
-
-function showDifficultyTransition(from, to) {
-  const labels = { easy: "Easy", medium: "Medium", hard: "Hard", boss: "Boss" };
-  const banner = document.createElement("div");
-  banner.className = "difficulty-transition";
-  banner.textContent = `${labels[from] || from} → ${labels[to] || to}`;
-  feedbackEl.parentNode.insertBefore(banner, feedbackEl);
-  setTimeout(() => banner.remove(), 1500);
-}
-
-// ── Submit ─────────────────────────────────────────────────────────────────
+// Checks the typed answer against the current regex pattern.
 function handleSubmit() {
   if (modalOpen || abortModalOpen || roundConcluded) return;
 
@@ -493,11 +639,11 @@ function handleSubmit() {
   }
 }
 
-function handleSkip() {
-  if (modalOpen || abortModalOpen || roundConcluded) return;
-  concludeRound("skip");
-}
+// ============================================================
+// 10. HINT & SKIP
+// ============================================================
 
+// Reveals the hint for the current challenge.
 function handleHint() {
   if (modalOpen || abortModalOpen || roundConcluded) return;
   const ch = challenges[currentChallenge];
@@ -506,7 +652,123 @@ function handleHint() {
   hintBtn.disabled = true;
 }
 
-// ── Round conclusion (single guard) ───────────────────────────────────────
+// Skips the current challenge (0 points) and reveals the explanation.
+function handleSkip() {
+  if (modalOpen || abortModalOpen || roundConcluded) return;
+  concludeRound("skip");
+}
+
+// ============================================================
+// 11. ABORT MISSION
+// ============================================================
+
+// Opens the Abort panel. The round timer pauses so dialog time is not
+// counted against the player's score.
+function openAbortModal() {
+  if (abortModalOpen || roundConcluded) return;
+  abortModalOpen = true;
+  abortTriggerButton = document.activeElement;
+
+  // Pause the timer while the modal is open.
+  pauseTimer();
+
+  // Fill in the summary (mode, round, score).
+  abortModeEl.textContent = MODE_LABELS[gameSettings.mode] || gameSettings.mode;
+  abortRoundEl.textContent = `${currentChallenge + 1} / ${challenges.length}`;
+  abortScoreEl.textContent = totalScore;
+
+  modalOverlay.classList.remove("hidden");
+  abortModal.classList.remove("hidden");
+  abortContinueBtn.focus();
+  document.addEventListener("keydown", handleAbortKeydown);
+}
+
+// Closes the Abort modal without quitting, resuming the round.
+function closeAbortModal() {
+  abortModalOpen = false;
+  abortModal.classList.add("hidden");
+  modalOverlay.classList.add("hidden");
+  document.removeEventListener("keydown", handleAbortKeydown);
+
+  // Resume from exactly where the timer paused.
+  resumeTimer();
+
+  // Return focus to the abort button.
+  if (
+    abortTriggerButton &&
+    abortTriggerButton.isConnected &&
+    typeof abortTriggerButton.focus === "function"
+  ) {
+    abortTriggerButton.focus();
+  }
+  abortTriggerButton = null;
+}
+
+// Escape closes the modal; Tab is trapped inside it.
+function handleAbortKeydown(e) {
+  if (e.key === "Escape") {
+    closeAbortModal();
+    return;
+  }
+  if (e.key === "Tab") {
+    const focusable = abortModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+}
+
+// Quits the mission: discards the score, returns to Welcome, resets round
+// state but keeps the settings for the next mission.
+function executeAbortQuit() {
+  closeAbortModal();
+
+  // Cancel any pending auto-advance so a finished round cannot advance a
+  // mission that has been aborted.
+  if (advanceTimeoutId) {
+    clearTimeout(advanceTimeoutId);
+    advanceTimeoutId = null;
+  }
+
+  // Stop the timer completely.
+  stopTimer();
+
+  // Do NOT save the score, do NOT show results — just go home.
+  showScreen(welcomeScreen);
+
+  // Reset mission state but keep settings for the next mission.
+  resetMissionState();
+}
+
+// Clears the mission-round state after an abort (keeps settings).
+function resetMissionState() {
+  currentChallenge = 0;
+  totalScore = 0;
+  currentStreak = 0;
+  bestStreak = 0;
+  correctCount = 0;
+  skippedCount = 0;
+  timeoutCount = 0;
+  incorrectAttemptCount = 0;
+  responseTimes = [];
+  roundConcluded = false;
+  elapsedSeconds = 0;
+  timerPausedAt = 0;
+  timerPaused = false;
+  challenges = [];
+}
+
+// ============================================================
+// 12. ROUND COMPLETION
+// ============================================================
+
+// A round can end through Correct, Skip, or Timeout. The roundConcluded
+// guard prevents two events from scoring/advancing the same round.
 function concludeRound(type) {
   if (roundConcluded) return;
   roundConcluded = true;
@@ -538,6 +800,7 @@ function concludeRound(type) {
       break;
 
     case "timeout":
+      // Timeout gives 0 points because the player lost to the clock.
       timeoutCount++;
       currentStreak = 0;
       responseTimes.push(elapsedSeconds);
@@ -556,15 +819,17 @@ function concludeRound(type) {
   streakValueEl.textContent = currentStreak;
   bestStreakValueEl.textContent = bestStreak;
 
-  advanceTimeoutId = setTimeout(() => advanceChallenge(), 2000);
+  advanceTimeoutId = setTimeout(() => advanceChallenge(), ROUND_TRANSITION_MS);
 }
 
+// Shows why the pattern matched (or why it was a boss).
 function showExplanation(ch) {
   const isBoss = ch.level === "boss";
   explanationEl.textContent = (isBoss ? "PATTERN BREAKDOWN: " : "WHY IT MATCHES: ") + ch.explanation;
   explanationEl.classList.remove("hidden");
 }
 
+// Moves to the next challenge, or shows results when the mission ends.
 function advanceChallenge() {
   currentChallenge++;
   if (currentChallenge < challenges.length) {
@@ -575,14 +840,19 @@ function advanceChallenge() {
   }
 }
 
-// ── Results ────────────────────────────────────────────────────────────────
+// ============================================================
+// 13. RESULTS & STATISTICS
+// ============================================================
+
+// Fills the mission report with final score, stats, and rank.
 function showResults() {
   stopTimer();
 
-  const maxPossibleScore = challenges.length * 10;
+  const maxPossibleScore = challenges.length * MAX_SCORE_PER_CHALLENGE;
   finalScoreEl.textContent = totalScore;
 
-  // Per-mode high score
+  // Per-mode high score. High scores are tracked per mode so an "Easy"
+  // score does not overwrite a "Rubric" score.
   const modeKey = gameSettings.mode;
   const wasHighScore = isModeHighScore(modeKey, totalScore);
   if (wasHighScore) {
@@ -594,21 +864,14 @@ function showResults() {
     newHsBadge.classList.add("hidden");
   }
 
-  // Also update legacy high score for compatibility
+  // Also update the legacy high score for backward compatibility.
   const legacyHS = getHighScore();
   if (totalScore > legacyHS) {
     setHighScore(totalScore);
   }
 
   // Mode label
-  const modeLabels = {
-    rubric: "Rubric",
-    easy: "Easy",
-    medium: "Medium",
-    hard: "Hard",
-    custom: "Custom"
-  };
-  statModeEl.textContent = modeLabels[modeKey] || modeKey;
+  statModeEl.textContent = MODE_LABELS[modeKey] || modeKey;
   statQuestionsEl.textContent = challenges.length;
   statCorrectEl.textContent = correctCount;
   statIncorrectEl.textContent = incorrectAttemptCount;
@@ -618,30 +881,59 @@ function showResults() {
 
   // Average round time
   if (responseTimes.length > 0) {
-    const avg = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+    const avg = calculateAverageResponseTime(responseTimes);
     statAvgTimeEl.textContent = avg.toFixed(1) + "s";
   } else {
     statAvgTimeEl.textContent = "—";
   }
 
   // Accuracy
-  const accuracy = challenges.length > 0
-    ? Math.round((correctCount / challenges.length) * 100)
-    : 0;
-  statAccuracyEl.textContent = accuracy + "%";
+  statAccuracyEl.textContent = calculateAccuracy(correctCount, challenges.length) + "%";
 
-  // Rank (based on percentage of max possible score)
+  // Rank (based on percentage of the max possible score)
   const pct = maxPossibleScore > 0 ? totalScore / maxPossibleScore : 0;
-  if (pct >= 0.9) rankEl.textContent = "MASTER CODEBREAKER";
-  else if (pct >= 0.7) rankEl.textContent = "REGEX SPECIALIST";
-  else if (pct >= 0.5) rankEl.textContent = "CIPHER AGENT";
-  else if (pct >= 0.3) rankEl.textContent = "PATTERN SCOUT";
-  else rankEl.textContent = "ROOKIE DECODER";
+  rankEl.textContent = getRankLabel(pct);
 
   showScreen(resultsScreen);
 }
 
-// ── Modals (preserved from v2) ─────────────────────────────────────────────
+/**
+ * Average time spent per answered round.
+ * @param {number[]} times The response times of every answered round.
+ * @returns {number} The average, or 0 when there were no rounds.
+ */
+function calculateAverageResponseTime(times) {
+  return times.reduce((a, b) => a + b, 0) / times.length;
+}
+
+/**
+ * Percentage of rounds answered correctly, rounded to an integer.
+ * @param {number} correct Count of correct answers.
+ * @param {number} total Total rounds in the mission.
+ * @returns {number} Accuracy percent.
+ */
+function calculateAccuracy(correctCount, total) {
+  return total > 0 ? Math.round((correctCount / total) * 100) : 0;
+}
+
+/**
+ * Maps a score percentage (0-1) to its rank title.
+ * @param {number} pct Earned score divided by max possible score.
+ * @returns {string} The rank title, e.g. "MASTER CODEBREAKER".
+ */
+function getRankLabel(pct) {
+  if (pct >= 0.9) return "MASTER CODEBREAKER";
+  else if (pct >= 0.7) return "REGEX SPECIALIST";
+  else if (pct >= 0.5) return "CIPHER AGENT";
+  else if (pct >= 0.3) return "PATTERN SCOUT";
+  else return "ROOKIE DECODER";
+}
+
+// ============================================================
+// 14. MODALS
+// ============================================================
+
+// Opens a generic modal (How to Play / Field Guide).
 function openModal(modalEl) {
   modalOpen = true;
   modalTriggerButton = document.activeElement;
@@ -652,6 +944,7 @@ function openModal(modalEl) {
   document.addEventListener("keydown", handleModalKeydown);
 }
 
+// Closes the generic modal and returns focus where it was opened from.
 function closeModal() {
   modalOpen = false;
   howToPlayModal.classList.add("hidden");
@@ -668,6 +961,7 @@ function closeModal() {
   modalTriggerButton = null;
 }
 
+// Escape closes the modal; Tab stays trapped inside it.
 function handleModalKeydown(e) {
   if (e.key === "Escape") {
     closeModal();
@@ -687,124 +981,10 @@ function handleModalKeydown(e) {
   }
 }
 
-// ── Abort Modal ──────────────────────────────────────────────────────────────
-function openAbortModal() {
-  if (abortModalOpen || roundConcluded) return;
-  abortModalOpen = true;
-  abortTriggerButton = document.activeElement;
+// ============================================================
+// 15. EVENT LISTENERS
+// ============================================================
 
-  // Pause timer while modal is open
-  pauseTimer();
-
-  // Populate abort summary
-  const modeLabels = { rubric: "Rubric", easy: "Easy", medium: "Medium", hard: "Hard", custom: "Custom" };
-  abortModeEl.textContent = modeLabels[gameSettings.mode] || gameSettings.mode;
-  abortRoundEl.textContent = `${currentChallenge + 1} / ${challenges.length}`;
-  abortScoreEl.textContent = totalScore;
-
-  modalOverlay.classList.remove("hidden");
-  abortModal.classList.remove("hidden");
-  abortContinueBtn.focus();
-  document.addEventListener("keydown", handleAbortKeydown);
-}
-
-function closeAbortModal() {
-  abortModalOpen = false;
-  abortModal.classList.add("hidden");
-  modalOverlay.classList.add("hidden");
-  document.removeEventListener("keydown", handleAbortKeydown);
-
-  // Resume timer
-  resumeTimer();
-
-  // Return focus to abort button
-  if (
-    abortTriggerButton &&
-    abortTriggerButton.isConnected &&
-    typeof abortTriggerButton.focus === "function"
-  ) {
-    abortTriggerButton.focus();
-  }
-  abortTriggerButton = null;
-}
-
-function handleAbortKeydown(e) {
-  if (e.key === "Escape") {
-    closeAbortModal();
-    return;
-  }
-  if (e.key === "Tab") {
-    const focusable = abortModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-    } else {
-      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-    }
-  }
-}
-
-function executeAbortQuit() {
-  closeAbortModal();
-
-  // Cancel any pending advance
-  if (advanceTimeoutId) {
-    clearTimeout(advanceTimeoutId);
-    advanceTimeoutId = null;
-  }
-
-  // Stop timer completely
-  stopTimer();
-
-  // Do NOT save score, do NOT show results
-  // Just return to welcome screen
-  showScreen(welcomeScreen);
-
-  // Reset mission state but keep settings for next mission
-  resetMissionState();
-}
-
-function resetMissionState() {
-  currentChallenge = 0;
-  totalScore = 0;
-  currentStreak = 0;
-  bestStreak = 0;
-  correctCount = 0;
-  skippedCount = 0;
-  timeoutCount = 0;
-  incorrectAttemptCount = 0;
-  responseTimes = [];
-  roundConcluded = false;
-  elapsedSeconds = 0;
-  timerPausedAt = 0;
-  timerPaused = false;
-  challenges = [];
-}
-
-// ── Start game ─────────────────────────────────────────────────────────────
-function startGame() {
-  resetState();
-  buildGame();
-  // Set HUD mode badge
-  const modeLabels = { rubric: "RUBRIC", easy: "EASY", medium: "MEDIUM", hard: "HARD", custom: "CUSTOM" };
-  hudMode.textContent = modeLabels[gameSettings.mode] || "RUBRIC";
-  // Set timer info
-  if (gameSettings.roundLimit) {
-    timerInfoMode.textContent = gameSettings.roundLimit + "s LIMIT";
-  } else {
-    timerInfoMode.textContent = "UNLIMITED";
-  }
-  // Reset ring
-  timerRingProgress.style.strokeDashoffset = "0";
-  timerRingProgress.classList.remove("warning", "critical");
-  showScreen(gameScreen);
-  renderChallenge();
-  startTimer();
-}
-
-// ── Event listeners ────────────────────────────────────────────────────────
 // Welcome
 enterArenaBtn.addEventListener("click", () => showScreen(missionSelectScreen));
 howToPlayBtn.addEventListener("click", () => openModal(howToPlayModal));
@@ -839,7 +1019,7 @@ playSameModeBtn.addEventListener("click", startGame);
 changeMissionBtn.addEventListener("click", () => showScreen(missionSelectScreen));
 resultsFieldGuideBtn.addEventListener("click", () => openModal(fieldGuideModal));
 
-// Modal close (preserved)
+// Modal close controls (abort modal uses its own path)
 modalCloseBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
     if (abortModalOpen) {
@@ -859,11 +1039,16 @@ modalOverlay.addEventListener("click", (e) => {
   }
 });
 
-// Abort modal
+// Abort modal buttons
 abortContinueBtn.addEventListener("click", closeAbortModal);
 abortQuitBtn.addEventListener("click", executeAbortQuit);
 
-// ── Sanity check (development) ─────────────────────────────────────────────
+// ============================================================
+// 16. INITIALIZATION
+// ============================================================
+
+// Development sanity check: every challenge's pass/fail cases must hold
+// when validated with the whole-string matcher.
 function runSanityCheck() {
   let failures = 0;
   allChallenges.forEach((ch) => {

@@ -12,7 +12,7 @@
 
   <div class="container">
 
-    <!-- ═══ Welcome Screen ═══════════════════════════════════════════════ -->
+    <!-- Welcome Screen -->
     <section id="welcome-screen" class="screen active">
       <div class="welcome-inner">
         <h1 class="title-glow">REGEX QUEST</h1>
@@ -28,7 +28,7 @@
       </div>
     </section>
 
-    <!-- ═══ Mission Select Screen ════════════════════════════════════════ -->
+    <!-- Mission Selection -->
     <section id="mission-select-screen" class="screen">
       <div class="mission-select-inner">
         <h2 class="section-title">SELECT MISSION MODE</h2>
@@ -126,7 +126,7 @@
       </div>
     </section>
 
-    <!-- ═══ Game Screen — Command Center ═════════════════════════════════ -->
+    <!-- Game Command Center -->
     <section id="game-screen" class="screen">
       <!-- HUD Bar -->
       <div class="hud-bar">
@@ -141,7 +141,7 @@
         <div class="hud-right">
           <span class="hud-label">SCORE</span>
           <span id="score" class="hud-value hud-score">0</span>
-          <button id="sound-toggle" class="btn-icon" aria-label="Toggle sound">SOUND OFF</button>
+          <button id="sound-toggle" class="btn-icon active" aria-label="Toggle sound">SOUND ON</button>
         </div>
       </div>
 
@@ -227,7 +227,7 @@
       </div>
     </section>
 
-    <!-- ═══ Results Screen ═══════════════════════════════════════════════ -->
+    <!-- Results Screen -->
     <section id="results-screen" class="screen">
       <div class="results-inner">
         <h1 class="title-glow">MISSION COMPLETE</h1>
@@ -292,8 +292,9 @@
       </div>
     </section>
 
-    <!-- ═══ Modal Overlay ════════════════════════════════════════════════ -->
+    <!-- Modal Overlay -->
     <div id="modal-overlay" class="modal-overlay hidden" role="presentation">
+      <!-- How to Play Modal -->
       <div id="how-to-play-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="htp-title">
         <div class="modal-header">
           <h2 id="htp-title" class="modal-title">HOW TO PLAY</h2>
@@ -314,6 +315,7 @@
         </div>
       </div>
 
+      <!-- Abort Mission Modal -->
       <div id="abort-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="abort-title">
         <div class="modal-header">
           <h2 id="abort-title" class="modal-title">ABORT CURRENT MISSION?</h2>
@@ -342,6 +344,7 @@
         </div>
       </div>
 
+      <!-- Regex Field Guide Modal -->
       <div id="field-guide-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="fg-title">
         <div class="modal-header">
           <h2 id="fg-title" class="modal-title">REGEX FIELD GUIDE</h2>

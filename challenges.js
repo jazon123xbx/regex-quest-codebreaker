@@ -1,3 +1,6 @@
+// ============================================================
+// EASY CHALLENGES
+// ============================================================
 export const easyChallenges = [
   {
     id: "e1",
@@ -73,6 +76,9 @@ export const easyChallenges = [
   }
 ];
 
+// ============================================================
+// MEDIUM CHALLENGES
+// ============================================================
 export const mediumChallenges = [
   {
     id: "m1",
@@ -184,6 +190,9 @@ export const mediumChallenges = [
   }
 ];
 
+// ============================================================
+// HARD CHALLENGES
+// ============================================================
 export const hardChallenges = [
   {
     id: "h1",
@@ -319,6 +328,9 @@ export const hardChallenges = [
   }
 ];
 
+// ============================================================
+// BOSS CHALLENGE
+// ============================================================
 export const bossChallenge = {
   id: "boss",
   level: "boss",
@@ -332,9 +344,12 @@ export const bossChallenge = {
   fail: ["short!", "noDIGIT", "n0symbol", "NoSpecial123", "alllowercase123!"]
 };
 
+// ============================================================
+// POOL AGGREGATE & RANDOMIZATION HELPERS
+// ============================================================
 export const allChallenges = [...easyChallenges, ...mediumChallenges, ...hardChallenges];
 
-// ── Pure challenge selection (DOM-free, testable) ──────────────────────────
+// Shuffles a copy of an array (Fisher–Yates).
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -344,10 +359,13 @@ function shuffle(arr) {
   return a;
 }
 
+// Returns n random items from an array, without duplicates.
 function pickRandom(arr, n) {
   return shuffle(arr).slice(0, n);
 }
 
+// Builds a fixed 10-challenge set: 3 easy + 3 medium + 3 hard + boss.
+// Used by tests and kept for any caller that wants the classic structure.
 export function buildChallengeSet(
   easy = easyChallenges,
   med = mediumChallenges,
@@ -357,13 +375,16 @@ export function buildChallengeSet(
   return [...pickRandom(easy, 3), ...pickRandom(med, 3), ...pickRandom(hard, 3), boss];
 }
 
-// ── Pool exports for mission builder ───────────────────────────────────────
+// ============================================================
+// MODE DEFAULTS & MISSION BUILDER
+// ============================================================
 export const easyPool = easyChallenges;
 export const mediumPool = mediumChallenges;
 export const hardPool = hardChallenges;
 export const poolSizes = { easy: easyChallenges.length, medium: mediumChallenges.length, hard: hardChallenges.length };
 
-// ── Mission builder (all modes) ────────────────────────────────────────────
+// Per-mode default question counts and per-round time limits.
+// roundLimit null = unlimited timer.
 const MODE_DEFAULTS = {
   rubric: { count: 10, timer: null },
   easy:   { count: 6, timer: 20 },
@@ -372,6 +393,23 @@ const MODE_DEFAULTS = {
   custom: { count: 10, timer: null }
 };
 
+/**
+ * Builds the challenge list for the selected mission mode.
+ *
+ * Rules preserved from version 3:
+ * - Rubric mode always returns 3 easy + 3 medium + 3 hard + the Boss.
+ * - The Boss appears ONLY in Rubric mode so single-level missions stay leveled.
+ * - Requested counts are clamped to the pool size so no challenge is reused
+ *   (this prevents login-style duplicate challenges on short pools).
+ * - Timed modes use their default round limit unless an override is given.
+ *
+ * @param {Object} settings Mission settings (mode, difficulty, questionCount).
+ * @param {string} [settings.mode="rubric"] One of: rubric, easy, medium, hard, custom.
+ * @param {string} [settings.difficulty="mixed"] Prowl pool for custom mode.
+ * @param {number} [settings.questionCount] How many challenges to request.
+ * @param {number|null} [settings.roundLimit] Per-round timer in seconds.
+ * @returns {{ challenges: Array, config: Object }} Selected challenges plus config.
+ */
 export function buildMissionSet(settings = {}) {
   const {
     mode = "rubric",
@@ -389,6 +427,8 @@ export function buildMissionSet(settings = {}) {
 
   switch (mode) {
     case "rubric": {
+      // The Boss belongs only to Rubric mode, the teacher-forward format
+      // that covers every difficulty in one mission.
       const easy = pickRandom(easyChallenges, 3);
       const med = pickRandom(mediumChallenges, 3);
       const hard = pickRandom(hardChallenges, 3);
@@ -397,6 +437,7 @@ export function buildMissionSet(settings = {}) {
       break;
     }
     case "easy": {
+      // Clamp to the pool size so a short pool can never repeat challenges.
       effectiveCount = Math.min(effectiveQuestionCount, easyChallenges.length);
       selected = pickRandom(easyChallenges, effectiveCount);
       break;
@@ -418,6 +459,7 @@ export function buildMissionSet(settings = {}) {
       else if (difficulty === "hard") pool = hardChallenges;
       else pool = [...easyChallenges, ...mediumChallenges, ...hardChallenges];
 
+      // Same safety clamp as the single-level modes.
       effectiveCount = Math.min(effectiveQuestionCount, pool.length);
       selected = pickRandom(pool, effectiveCount);
       break;
