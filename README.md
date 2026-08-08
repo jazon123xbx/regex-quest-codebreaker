@@ -1,52 +1,77 @@
-# Regex Quest — Codebreaker Protocol
+# Regex Quest — Codebreaker Arena
 
-A polished cybersecurity-themed regex challenge game. Break the pattern. Crack the vault. Become the Codebreaker.
+A cybersecurity-themed regex challenge game with multiple mission modes, circular countdown timers, and a command-center interface. Break the pattern. Crack the vault. Become the Codebreaker.
+
+**Mission Operators:** Redido · Tamboboy · Sanchez
 
 ## Project Structure
 
 ```
 regex-quest/
-├── index.html       # Welcome, Game, Results screens + modals
-├── styles.css       # Codebreaker visual system, responsive layout, animations
-├── regex-utils.js   # Reusable regex validation helper
-├── challenges.js    # Challenge data (9 regular + 1 boss)
-├── game.js          # Game engine: state machine, timer, scoring, progress, modals
-├── storage.js       # localStorage high score persistence
-├── test.mjs         # Automated challenge & selection verification
+├── index.html       # Welcome, Mission Select, Game, Results screens + modals
+├── styles.css       # Codebreaker Arena visual system, responsive layout, animations
+├── regex-utils.js   # Reusable regex validation helper (DO NOT MODIFY)
+├── challenges.js    # Challenge data pools + buildMissionSet() builder
+├── game.js          # Game engine: mode router, timer, scoring, progress, modals
+├── storage.js       # localStorage high score persistence (legacy + per-mode)
+├── test.mjs         # Automated challenge, selection, and mode verification
 └── README.md        # This file
 ```
 
+## Mission Modes
+
+| Mode | Questions | Timer | Description |
+|------|-----------|-------|-------------|
+| **Rubric** | 10 (3E + 3M + 3H + Boss) | Unlimited | Default/teacher-safe mode covering all difficulty levels |
+| **Easy** | Up to 6 | 20s per round | Focus on beginner patterns |
+| **Medium** | Up to 9 | 15s per round | Intermediate patterns |
+| **Hard** | Up to 11 | 12s per round | Advanced patterns |
+| **Custom** | 5 or 10 | 10s / 15s / 20s / Unlimited | Configure difficulty, question count, and timer |
+
 ## Features
 
-- 10-vault mission: 3 Easy + 3 Medium + 3 Hard + 1 Boss
-- Vault progress path with visual state tracking
-- Boss round with distinct amber/gold styling
-- ACCESS GRANTED / ACCESS DENIED feedback
+- 5 mission modes with unique pool sizes and timer configurations
+- Command-center grid layout (responsive: desktop → tablet → mobile)
+- Circular SVG timer with countdown/elapsed modes and warning/critical states
+- Dynamic progress path matching question count
+- Difficulty transition banners between challenge levels
+- Boss round with distinct amber/gold styling (Rubric mode only)
+- Sound effects (toggle-able) for correct/incorrect/skip/timeout
+- ACCESS GRANTED / ACCESS DENIED / TIMEOUT feedback
 - Regex explanation panel after each answer
 - How to Play and Regex Field Guide modals
-- Mission report with average round time
+- Per-mode high score tracking
+- Mission report with expanded statistics
 - Rank system: Rookie Decoder → Master Codebreaker
-- Local high score persistence
+- Team credits display
 - Fully responsive (1440px down to 390px)
 - Reduced motion support
 - Zero dependencies
 
 ## Scoring
 
-Each challenge uses an elapsed-count-up timer:
+Each challenge scores based on elapsed time:
 
 ```
 challengeScore = max(0, 10 - floor(elapsedSeconds))
-totalScore     = sum of all 10 challenge scores
+totalScore     = sum of all challenge scores
 ```
 
 - Answer instantly = 10 points
 - After 10 seconds = 0 points
 - Incorrect answers let you retry (timer keeps running)
 - Skip = 0 points for that challenge
-- No lives, no timeout, no streak bonuses
+- Timeout = 0 points for that challenge (timed modes only)
+
+**Internal scoring ALWAYS uses elapsedSeconds**, even when the timer displays countdown.
 
 ## Rank Thresholds
+
+Rank is calculated against the maximum possible score for the mission:
+
+```
+scorePercentage = finalScore / (questionCount × 10)
+```
 
 | Score % | Rank |
 |---------|------|
@@ -55,6 +80,16 @@ totalScore     = sum of all 10 challenge scores
 | 50–69   | CIPHER AGENT |
 | 30–49   | PATTERN SCOUT |
 | 0–29    | ROOKIE DECODER |
+
+## Challenge Pools
+
+| Pool | Count | IDs |
+|------|-------|-----|
+| Easy | 6 | e1–e6 |
+| Medium | 9 | m1–m9 |
+| Hard | 11 | h1–h11 |
+| Boss | 1 | boss |
+| **Total** | **27** | |
 
 ## How Regex Validation Works
 
@@ -87,7 +122,33 @@ Then visit `http://localhost:8000`.
 node test.mjs
 ```
 
-Verifies all challenge patterns compile, pass/fail cases are correct, selection invariants hold (50 iterations), and scoring formula is accurate.
+Verifies:
+- All 216 challenge pass/fail cases compile and match correctly
+- Selection invariants hold across 50 iterations (Rubric mode)
+- All 5 mission modes produce correct structure, pool sizes, and timer configs
+- Pool uniqueness across 50 iterations × 5 modes
+- Boss placement only in Rubric mode
+- Scoring formula edge cases
+- **Total: 337 automated test cases**
+
+## Architecture
+
+### buildMissionSet(settings)
+
+Pure function in `challenges.js` that generates challenges for any mode:
+
+```js
+buildMissionSet({ mode: "rubric" })
+buildMissionSet({ mode: "easy", questionCount: 5 })
+buildMissionSet({ mode: "custom", difficulty: "hard", questionCount: 10, roundLimit: 12 })
+```
+
+Returns `{ challenges: [...], config: { mode, difficulty, questionCount, roundLimit } }`.
+
+### Storage Keys
+
+- `regexquest_highscore` — legacy high score (backward compatible)
+- `regexquest_mode_highscores` — per-mode high scores as JSON map
 
 ## Adding Challenges
 

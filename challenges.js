@@ -356,3 +356,81 @@ export function buildChallengeSet(
 ) {
   return [...pickRandom(easy, 3), ...pickRandom(med, 3), ...pickRandom(hard, 3), boss];
 }
+
+// ── Pool exports for mission builder ───────────────────────────────────────
+export const easyPool = easyChallenges;
+export const mediumPool = mediumChallenges;
+export const hardPool = hardChallenges;
+export const poolSizes = { easy: easyChallenges.length, medium: mediumChallenges.length, hard: hardChallenges.length };
+
+// ── Mission builder (all modes) ────────────────────────────────────────────
+const MODE_DEFAULTS = {
+  rubric: { count: 10, timer: null },
+  easy:   { count: 6, timer: 20 },
+  medium: { count: 8, timer: 15 },
+  hard:   { count: 10, timer: 12 },
+  custom: { count: 10, timer: null }
+};
+
+export function buildMissionSet(settings = {}) {
+  const {
+    mode = "rubric",
+    difficulty = "mixed",
+    questionCount,
+    roundLimit
+  } = settings;
+
+  const defaults = MODE_DEFAULTS[mode] || MODE_DEFAULTS.rubric;
+  const effectiveQuestionCount = questionCount ?? defaults.count;
+  const effectiveRoundLimit = roundLimit ?? defaults.timer;
+
+  let selected = [];
+  let effectiveCount = effectiveQuestionCount;
+
+  switch (mode) {
+    case "rubric": {
+      const easy = pickRandom(easyChallenges, 3);
+      const med = pickRandom(mediumChallenges, 3);
+      const hard = pickRandom(hardChallenges, 3);
+      selected = [...easy, ...med, ...hard, bossChallenge];
+      effectiveCount = 10;
+      break;
+    }
+    case "easy": {
+      effectiveCount = Math.min(effectiveQuestionCount, easyChallenges.length);
+      selected = pickRandom(easyChallenges, effectiveCount);
+      break;
+    }
+    case "medium": {
+      effectiveCount = Math.min(effectiveQuestionCount, mediumChallenges.length);
+      selected = pickRandom(mediumChallenges, effectiveCount);
+      break;
+    }
+    case "hard": {
+      effectiveCount = Math.min(effectiveQuestionCount, hardChallenges.length);
+      selected = pickRandom(hardChallenges, effectiveCount);
+      break;
+    }
+    case "custom": {
+      let pool = [];
+      if (difficulty === "easy") pool = easyChallenges;
+      else if (difficulty === "medium") pool = mediumChallenges;
+      else if (difficulty === "hard") pool = hardChallenges;
+      else pool = [...easyChallenges, ...mediumChallenges, ...hardChallenges];
+
+      effectiveCount = Math.min(effectiveQuestionCount, pool.length);
+      selected = pickRandom(pool, effectiveCount);
+      break;
+    }
+  }
+
+  return {
+    challenges: selected,
+    config: {
+      mode,
+      difficulty: difficulty,
+      questionCount: selected.length,
+      roundLimit: effectiveRoundLimit
+    }
+  };
+}
