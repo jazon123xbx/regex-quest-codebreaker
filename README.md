@@ -24,8 +24,8 @@ regex-quest/
 |------|-----------|-------|-------------|
 | **Rubric** | 10 (3E + 3M + 3H + Boss) | Unlimited | Default/teacher-safe mode covering all difficulty levels |
 | **Easy** | Up to 6 | 20s per round | Focus on beginner patterns |
-| **Medium** | Up to 9 | 15s per round | Intermediate patterns |
-| **Hard** | Up to 11 | 12s per round | Advanced patterns |
+| **Medium** | Up to 8 | 15s per round | Intermediate patterns |
+| **Hard** | Up to 10 | 12s per round | Advanced patterns |
 | **Custom** | 5 or 10 | 10s / 15s / 20s / Unlimited | Configure difficulty, question count, and timer |
 
 ## Features
