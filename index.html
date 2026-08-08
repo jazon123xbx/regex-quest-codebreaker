@@ -3,78 +3,171 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Regex Quest — Codebreaker Protocol</title>
+  <title>Regex Quest — Codebreaker Arena</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
   <div class="container">
 
     <!-- ═══ Welcome Screen ═══════════════════════════════════════════════ -->
     <section id="welcome-screen" class="screen active">
-      <div class="terminal-window">
-        <div class="terminal-bar">
-          <span class="dot red"></span>
-          <span class="dot yellow"></span>
-          <span class="dot green"></span>
-        </div>
-        <div class="terminal-body welcome-body">
-          <h1 class="title-glow">REGEX QUEST</h1>
-          <p class="subtitle">CODEBREAKER PROTOCOL</p>
-          <p class="tagline">Break the pattern. Crack the vault. Become the Codebreaker.</p>
-          <div class="divider"></div>
-          <div class="mission-briefing">
-            <p>Complete <strong>10 vaults</strong> by entering a string that matches each secret regex pattern.</p>
-            <p>Correct answers score up to <strong>10 points</strong> — 1 point is lost for every elapsed second.</p>
-            <p>The final challenge is the <strong>Boss Vault</strong>.</p>
-          </div>
-          <div class="welcome-actions">
-            <button id="start-btn" class="btn btn-primary btn-start">START MISSION</button>
-            <button id="how-to-play-btn" class="btn btn-secondary">HOW TO PLAY</button>
-            <button id="field-guide-btn" class="btn btn-secondary">REGEX FIELD GUIDE</button>
-          </div>
+      <div class="welcome-inner">
+        <h1 class="title-glow">REGEX QUEST</h1>
+        <p class="subtitle">CODEBREAKER ARENA</p>
+        <p class="tagline">Break the pattern.<br>Crack the vault.<br>Become the Codebreaker.</p>
+        <div class="divider"></div>
+        <p class="team-credits">Mission Operators: <strong>Redido</strong> · <strong>Tamboboy</strong> · <strong>Sanchez</strong></p>
+        <div class="welcome-actions">
+          <button id="enter-arena-btn" class="btn btn-primary btn-start">ENTER COMMAND CENTER</button>
+          <button id="how-to-play-btn" class="btn btn-secondary">HOW TO PLAY</button>
+          <button id="field-guide-btn" class="btn btn-secondary">REGEX FIELD GUIDE</button>
         </div>
       </div>
     </section>
 
-    <!-- ═══ Game Screen ══════════════════════════════════════════════════ -->
-    <section id="game-screen" class="screen">
-      <div class="terminal-window">
-        <div class="terminal-bar">
-          <span class="dot red"></span>
-          <span class="dot yellow"></span>
-          <span class="dot green"></span>
-        </div>
-        <div class="terminal-body game-body">
+    <!-- ═══ Mission Select Screen ════════════════════════════════════════ -->
+    <section id="mission-select-screen" class="screen">
+      <div class="mission-select-inner">
+        <h2 class="section-title">SELECT MISSION MODE</h2>
+        <p class="section-desc">Choose your cipher protocol. Each mode tests different skills.</p>
 
-          <!-- HUD -->
-          <div class="hud">
-            <div class="hud-chip">
-              <span class="hud-label">MISSION</span>
-              <span id="hud-challenge" class="hud-value">1 / 10</span>
-            </div>
-            <div class="hud-chip">
-              <span class="hud-label">DIFFICULTY</span>
-              <span id="difficulty" class="badge badge-easy">Easy</span>
-            </div>
-            <div class="hud-chip">
-              <span class="hud-label">TIME</span>
-              <span id="timer" class="hud-value hud-timer">0s</span>
-            </div>
-            <div class="hud-chip">
-              <span class="hud-label">SCORE</span>
-              <span id="score" class="hud-value hud-score">0</span>
-            </div>
-            <div class="hud-chip">
-              <span class="hud-label">HIGH SCORE</span>
-              <span id="high-score-game" class="hud-value hud-high">0</span>
+        <div class="mode-grid">
+          <button class="mode-card active" data-mode="rubric">
+            <div class="mode-icon">R</div>
+            <div class="mode-name">RUBRIC MODE</div>
+            <div class="mode-desc">3 Easy · 3 Medium · 3 Hard · Boss</div>
+            <div class="mode-timer">No time limit</div>
+          </button>
+          <button class="mode-card" data-mode="easy">
+            <div class="mode-icon">E</div>
+            <div class="mode-name">EASY</div>
+            <div class="mode-desc">6 Easy challenges</div>
+            <div class="mode-timer">20s per round</div>
+          </button>
+          <button class="mode-card" data-mode="medium">
+            <div class="mode-icon">M</div>
+            <div class="mode-name">MEDIUM</div>
+            <div class="mode-desc">9 Medium challenges</div>
+            <div class="mode-timer">15s per round</div>
+          </button>
+          <button class="mode-card" data-mode="hard">
+            <div class="mode-icon">H</div>
+            <div class="mode-name">HARD</div>
+            <div class="mode-desc">11 Hard challenges</div>
+            <div class="mode-timer">12s per round</div>
+          </button>
+          <button class="mode-card" data-mode="custom">
+            <div class="mode-icon">C</div>
+            <div class="mode-name">CUSTOM</div>
+            <div class="mode-desc">Configure your mission</div>
+            <div class="mode-timer">Your choice</div>
+          </button>
+        </div>
+
+        <!-- Custom Config Panel (hidden by default) -->
+        <div id="custom-config" class="custom-config hidden">
+          <div class="config-row">
+            <label class="config-label" for="custom-difficulty">DIFFICULTY</label>
+            <select id="custom-difficulty" class="config-select">
+              <option value="mixed">MIXED</option>
+              <option value="easy">EASY</option>
+              <option value="medium">MEDIUM</option>
+              <option value="hard">HARD</option>
+            </select>
+          </div>
+          <div class="config-row">
+            <label class="config-label">QUESTIONS</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="custom-count" value="5">
+                <span class="radio-mark"></span>
+                5
+              </label>
+              <label class="radio-option" id="count-10-option">
+                <input type="radio" name="custom-count" value="10" checked>
+                <span class="radio-mark"></span>
+                10
+              </label>
             </div>
           </div>
+          <div class="config-row">
+            <label class="config-label">TIMER</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="custom-timer" value="10">
+                <span class="radio-mark"></span>
+                10s
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="custom-timer" value="15">
+                <span class="radio-mark"></span>
+                15s
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="custom-timer" value="20">
+                <span class="radio-mark"></span>
+                20s
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="custom-timer" value="unlimited" checked>
+                <span class="radio-mark"></span>
+                Unlimited
+              </label>
+            </div>
+          </div>
+          <div id="custom-validation" class="config-validation hidden"></div>
+        </div>
 
-          <!-- Vault Progress Path -->
-          <div id="vault-progress" class="vault-progress" aria-label="Vault progress"></div>
+        <button id="begin-mission-btn" class="btn btn-primary btn-start">BEGIN MISSION</button>
+        <button id="back-to-welcome-btn" class="btn btn-secondary back-link">← Back to Welcome</button>
+      </div>
+    </section>
 
-          <!-- Target Regex Card -->
-          <div id="target-card" class="target-card">
+    <!-- ═══ Game Screen — Command Center ═════════════════════════════════ -->
+    <section id="game-screen" class="screen">
+      <!-- HUD Bar -->
+      <div class="hud-bar">
+        <div class="hud-left">
+          <span id="hud-mode" class="hud-mode-badge">RUBRIC</span>
+          <span id="difficulty" class="badge badge-easy">Easy</span>
+        </div>
+        <div class="hud-center">
+          <span class="hud-label">MISSION</span>
+          <span id="hud-challenge" class="hud-value">1 / 10</span>
+        </div>
+        <div class="hud-right">
+          <span class="hud-label">SCORE</span>
+          <span id="score" class="hud-value hud-score">0</span>
+          <button id="sound-toggle" class="btn-icon" aria-label="Toggle sound">SOUND OFF</button>
+        </div>
+      </div>
+
+      <!-- Command Center Grid -->
+      <div class="command-center">
+
+        <!-- Timer Panel -->
+        <div class="cc-panel cc-timer-panel">
+          <div class="timer-ring-wrapper">
+            <svg class="timer-ring" viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="timer-ring-bg" cx="50" cy="50" r="42" />
+              <circle id="timer-ring-progress" class="timer-ring-progress" cx="50" cy="50" r="42" />
+            </svg>
+            <div class="timer-center">
+              <span id="timer-value" class="timer-value">0</span>
+              <span id="timer-label" class="timer-label">ELAPSED</span>
+            </div>
+          </div>
+          <div class="timer-info">
+            <span id="timer-info-mode" class="timer-info-text">UNLIMITED</span>
+          </div>
+        </div>
+
+        <!-- Challenge Panel -->
+        <div class="cc-panel cc-challenge-panel">
+          <div class="target-card" id="target-card">
             <div class="target-header">
               <span class="target-label" id="target-label">TARGET PATTERN</span>
               <span id="challenge-title" class="challenge-title"></span>
@@ -82,10 +175,10 @@
             <code id="regex-display" class="regex-code"></code>
             <p id="challenge-words" class="challenge-words"></p>
           </div>
+        </div>
 
-          <div id="feedback" class="feedback" aria-live="polite"></div>
-
-          <!-- Input -->
+        <!-- Input Panel -->
+        <div class="cc-panel cc-input-panel">
           <div class="input-row">
             <label for="answer-input" class="sr-only">Enter your decoded string</label>
             <input
@@ -98,50 +191,107 @@
             >
             <button id="submit-btn" class="btn btn-primary">DECODE</button>
           </div>
-
           <div class="action-row">
             <button id="hint-btn" class="btn btn-secondary">HINT</button>
             <button id="skip-btn" class="btn btn-secondary">SKIP</button>
           </div>
-
           <div id="hint-box" class="info-box hint-box hidden"></div>
           <div id="explanation-box" class="info-box explanation-box hidden" aria-live="polite"></div>
-
         </div>
+
+        <!-- Feedback Panel -->
+        <div class="cc-panel cc-feedback-panel">
+          <div id="feedback" class="feedback" aria-live="polite"></div>
+          <div class="streak-display">
+            <div class="streak-item">
+              <span class="streak-label">STREAK</span>
+              <span id="streak-value" class="streak-value">0</span>
+            </div>
+            <div class="streak-item">
+              <span class="streak-label">BEST</span>
+              <span id="best-streak-value" class="streak-value">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Panel -->
+        <div class="cc-panel cc-progress-panel">
+          <div class="progress-header">
+            <span class="progress-title">PROGRESS</span>
+            <span id="progress-counter" class="progress-counter">1 / 10</span>
+          </div>
+          <div id="vault-progress" class="vault-progress" aria-label="Vault progress"></div>
+        </div>
+
       </div>
     </section>
 
     <!-- ═══ Results Screen ═══════════════════════════════════════════════ -->
     <section id="results-screen" class="screen">
-      <div class="terminal-window">
-        <div class="terminal-bar">
-          <span class="dot red"></span>
-          <span class="dot yellow"></span>
-          <span class="dot green"></span>
+      <div class="results-inner">
+        <h1 class="title-glow">MISSION COMPLETE</h1>
+        <div class="rank" id="rank-text">PATTERN SCOUT</div>
+
+        <div class="results-scores">
+          <div class="result-score-block">
+            <span class="result-score-label">FINAL SCORE</span>
+            <span id="final-score" class="result-score-value">0</span>
+          </div>
+          <div class="result-score-block">
+            <span class="result-score-label">HIGH SCORE</span>
+            <span id="stat-high-score" class="result-score-value result-hs">0</span>
+          </div>
+          <div id="new-hs-badge" class="new-hs-badge hidden">NEW HIGH SCORE!</div>
         </div>
-        <div class="terminal-body results-body">
-          <h1 class="title-glow">MISSION COMPLETE</h1>
-          <div class="rank" id="rank-text">PATTERN SCOUT</div>
-          <div class="final-score-row">
-            <span class="final-score-label">Final Score</span>
-            <span id="final-score" class="final-score-value">0</span>
+
+        <div class="score-breakdown">
+          <div class="breakdown-row">
+            <span class="breakdown-label">MODE</span>
+            <span id="stat-mode" class="breakdown-val">Rubric</span>
           </div>
-          <div class="results-high-score">
-            <span class="results-hs-label">High Score</span>
-            <span id="stat-high-score" class="results-hs-value">0</span>
+          <div class="breakdown-row">
+            <span class="breakdown-label">QUESTIONS</span>
+            <span id="stat-questions" class="breakdown-val">10</span>
           </div>
-          <div class="stats-grid">
-            <div class="stat"><span class="stat-val" id="stat-correct">0</span><span class="stat-lbl">Correct</span></div>
-            <div class="stat"><span class="stat-val" id="stat-skipped">0</span><span class="stat-lbl">Skipped</span></div>
-            <div class="stat"><span class="stat-val" id="stat-best-streak">0</span><span class="stat-lbl">Best Streak</span></div>
-            <div class="stat"><span class="stat-val" id="stat-avg-time">0s</span><span class="stat-lbl">Avg Round Time</span></div>
+          <div class="breakdown-row">
+            <span class="breakdown-label">CORRECT</span>
+            <span id="stat-correct" class="breakdown-val">0</span>
           </div>
-          <button id="play-again-btn" class="btn btn-primary">PLAY AGAIN</button>
+          <div class="breakdown-row">
+            <span class="breakdown-label">INCORRECT ATTEMPTS</span>
+            <span id="stat-incorrect" class="breakdown-val">0</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-label">SKIPPED</span>
+            <span id="stat-skipped" class="breakdown-val">0</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-label">TIMED OUT</span>
+            <span id="stat-timeout" class="breakdown-val">0</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-label">BEST STREAK</span>
+            <span id="stat-best-streak" class="breakdown-val">0</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-label">AVG ROUND TIME</span>
+            <span id="stat-avg-time" class="breakdown-val">—</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-label">ACCURACY</span>
+            <span id="stat-accuracy" class="breakdown-val">0%</span>
+          </div>
+        </div>
+
+        <div class="mission-actions">
+          <button id="play-same-mode-btn" class="btn btn-primary">PLAY SAME MODE</button>
+          <button id="change-mission-btn" class="btn btn-secondary">CHANGE MISSION</button>
+          <button id="results-field-guide-btn" class="btn btn-secondary">REGEX FIELD GUIDE</button>
         </div>
       </div>
     </section>
 
-    <!-- ═══ How to Play Modal ════════════════════════════════════════════ -->
+    <!-- ═══ Modal Overlay ════════════════════════════════════════════════ -->
     <div id="modal-overlay" class="modal-overlay hidden" role="presentation">
       <div id="how-to-play-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="htp-title">
         <div class="modal-header">
@@ -150,19 +300,19 @@
         </div>
         <div class="modal-body">
           <ol class="modal-steps">
-            <li>Read the <strong>target regex pattern</strong> displayed on the card.</li>
+            <li>Read the <strong>target regex pattern</strong> displayed on the cipher card.</li>
             <li>Enter a string that <strong>matches the complete pattern</strong>.</li>
             <li>Press <strong>Decode</strong> or hit <strong>Enter</strong> to submit.</li>
             <li>Correct answers earn up to <strong>10 points</strong>.</li>
             <li>Each elapsed second removes <strong>1 point</strong> from your reward.</li>
-            <li>Incorrect answers can be <strong>retried</strong> with no penalty.</li>
+            <li>Incorrect answers can be <strong>retried</strong> with no penalty (timer keeps running).</li>
             <li><strong>Skip</strong> awards 0 points and reveals the explanation.</li>
-            <li>Crack all <strong>10 vaults</strong> — including the Boss — to finish the mission.</li>
+            <li>In timed modes, reaching the limit <strong>times out</strong> the round (0 points).</li>
+            <li>Choose your mode wisely — <strong>Rubric</strong> tests all levels, <strong>Custom</strong> lets you focus.</li>
           </ol>
         </div>
       </div>
 
-      <!-- ═══ Regex Field Guide Modal ════════════════════════════════════ -->
       <div id="field-guide-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="fg-title">
         <div class="modal-header">
           <h2 id="fg-title" class="modal-title">REGEX FIELD GUIDE</h2>
