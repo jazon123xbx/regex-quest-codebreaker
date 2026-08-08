@@ -40,6 +40,13 @@ let modalTriggerButton = null;
 let soundEnabled = false;
 let lastDifficulty = null;
 
+// Abort state
+let abortModalOpen = false;
+let abortTriggerButton = null;
+let advanceTimeoutId = null;
+let timerPausedAt = 0;
+let timerPaused = false;
+
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
 
@@ -89,6 +96,7 @@ const input = $("#answer-input");
 const submitBtn = $("#submit-btn");
 const skipBtn = $("#skip-btn");
 const hintBtn = $("#hint-btn");
+const abortBtn = $("#abort-btn");
 const hintEl = $("#hint-box");
 const explanationEl = $("#explanation-box");
 const feedbackEl = $("#feedback");
@@ -123,7 +131,15 @@ const resultsFieldGuideBtn = $("#results-field-guide-btn");
 const modalOverlay = $("#modal-overlay");
 const howToPlayModal = $("#how-to-play-modal");
 const fieldGuideModal = $("#field-guide-modal");
+const abortModal = $("#abort-modal");
 const modalCloseBtns = document.querySelectorAll("[data-close-modal]");
+
+// Abort modal elements
+const abortContinueBtn = $("#abort-continue-btn");
+const abortQuitBtn = $("#abort-quit-btn");
+const abortModeEl = $("#abort-mode");
+const abortRoundEl = $("#abort-round");
+const abortScoreEl = $("#abort-score");
 
 // ── Sound system ───────────────────────────────────────────────────────────
 let audioCtx = null;
@@ -192,6 +208,10 @@ function startTimer() {
 function stopTimer() {
   clearInterval(timerInterval);
   timerInterval = null;
+  if (advanceTimeoutId) {
+    clearTimeout(advanceTimeoutId);
+    advanceTimeoutId = null;
+  }
 }
 
 function updateTimerDisplay() {
@@ -228,6 +248,32 @@ function updateTimerDisplay() {
 function handleTimeout() {
   if (roundConcluded) return;
   concludeRound("timeout");
+}
+
+// ── Abort Timer Management ───────────────────────────────────────────────────
+function pauseTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    timerPausedAt = elapsedSeconds;
+    timerPaused = true;
+  }
+}
+
+function resumeTimer() {
+  if (timerPaused) {
+    timerPaused = false;
+    elapsedSeconds = timerPausedAt;
+    timerPausedAt = 0;
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+      elapsedSeconds++;
+      updateTimerDisplay();
+      if (gameSettings.roundLimit && elapsedSeconds >= gameSettings.roundLimit) {
+        handleTimeout();
+      }
+    }, 1000);
+  }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -343,6 +389,10 @@ function resetState() {
   responseTimes = [];
   roundConcluded = false;
   lastDifficulty = null;
+  timerPausedAt = 0;
+  timerPaused = false;
+  abortModalOpen = false;
+  abortTriggerButton = null;
 }
 
 function buildGame() {
@@ -418,7 +468,7 @@ function showDifficultyTransition(from, to) {
 
 // ── Submit ─────────────────────────────────────────────────────────────────
 function handleSubmit() {
-  if (modalOpen || roundConcluded) return;
+  if (modalOpen || abortModalOpen || roundConcluded) return;
 
   const ch = challenges[currentChallenge];
   const raw = input.value;
@@ -444,12 +494,12 @@ function handleSubmit() {
 }
 
 function handleSkip() {
-  if (modalOpen || roundConcluded) return;
+  if (modalOpen || abortModalOpen || roundConcluded) return;
   concludeRound("skip");
 }
 
 function handleHint() {
-  if (modalOpen || roundConcluded) return;
+  if (modalOpen || abortModalOpen || roundConcluded) return;
   const ch = challenges[currentChallenge];
   hintEl.textContent = "Hint: " + ch.hint;
   hintEl.classList.remove("hidden");
@@ -506,7 +556,7 @@ function concludeRound(type) {
   streakValueEl.textContent = currentStreak;
   bestStreakValueEl.textContent = bestStreak;
 
-  setTimeout(() => advanceChallenge(), 2000);
+  advanceTimeoutId = setTimeout(() => advanceChallenge(), 2000);
 }
 
 function showExplanation(ch) {
@@ -637,6 +687,102 @@ function handleModalKeydown(e) {
   }
 }
 
+// ── Abort Modal ──────────────────────────────────────────────────────────────
+function openAbortModal() {
+  if (abortModalOpen || roundConcluded) return;
+  abortModalOpen = true;
+  abortTriggerButton = document.activeElement;
+
+  // Pause timer while modal is open
+  pauseTimer();
+
+  // Populate abort summary
+  const modeLabels = { rubric: "Rubric", easy: "Easy", medium: "Medium", hard: "Hard", custom: "Custom" };
+  abortModeEl.textContent = modeLabels[gameSettings.mode] || gameSettings.mode;
+  abortRoundEl.textContent = `${currentChallenge + 1} / ${challenges.length}`;
+  abortScoreEl.textContent = totalScore;
+
+  modalOverlay.classList.remove("hidden");
+  abortModal.classList.remove("hidden");
+  abortContinueBtn.focus();
+  document.addEventListener("keydown", handleAbortKeydown);
+}
+
+function closeAbortModal() {
+  abortModalOpen = false;
+  abortModal.classList.add("hidden");
+  modalOverlay.classList.add("hidden");
+  document.removeEventListener("keydown", handleAbortKeydown);
+
+  // Resume timer
+  resumeTimer();
+
+  // Return focus to abort button
+  if (
+    abortTriggerButton &&
+    abortTriggerButton.isConnected &&
+    typeof abortTriggerButton.focus === "function"
+  ) {
+    abortTriggerButton.focus();
+  }
+  abortTriggerButton = null;
+}
+
+function handleAbortKeydown(e) {
+  if (e.key === "Escape") {
+    closeAbortModal();
+    return;
+  }
+  if (e.key === "Tab") {
+    const focusable = abortModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+}
+
+function executeAbortQuit() {
+  closeAbortModal();
+
+  // Cancel any pending advance
+  if (advanceTimeoutId) {
+    clearTimeout(advanceTimeoutId);
+    advanceTimeoutId = null;
+  }
+
+  // Stop timer completely
+  stopTimer();
+
+  // Do NOT save score, do NOT show results
+  // Just return to welcome screen
+  showScreen(welcomeScreen);
+
+  // Reset mission state but keep settings for next mission
+  resetMissionState();
+}
+
+function resetMissionState() {
+  currentChallenge = 0;
+  totalScore = 0;
+  currentStreak = 0;
+  bestStreak = 0;
+  correctCount = 0;
+  skippedCount = 0;
+  timeoutCount = 0;
+  incorrectAttemptCount = 0;
+  responseTimes = [];
+  roundConcluded = false;
+  elapsedSeconds = 0;
+  timerPausedAt = 0;
+  timerPaused = false;
+  challenges = [];
+}
+
 // ── Start game ─────────────────────────────────────────────────────────────
 function startGame() {
   resetState();
@@ -676,6 +822,7 @@ backToWelcomeBtn.addEventListener("click", () => showScreen(welcomeScreen));
 submitBtn.addEventListener("click", handleSubmit);
 skipBtn.addEventListener("click", handleSkip);
 hintBtn.addEventListener("click", handleHint);
+abortBtn.addEventListener("click", openAbortModal);
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !submitBtn.disabled) handleSubmit();
 });
@@ -693,10 +840,28 @@ changeMissionBtn.addEventListener("click", () => showScreen(missionSelectScreen)
 resultsFieldGuideBtn.addEventListener("click", () => openModal(fieldGuideModal));
 
 // Modal close (preserved)
-modalCloseBtns.forEach((btn) => btn.addEventListener("click", closeModal));
-modalOverlay.addEventListener("click", (e) => {
-  if (e.target === modalOverlay) closeModal();
+modalCloseBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    if (abortModalOpen) {
+      closeAbortModal();
+    } else {
+      closeModal();
+    }
+  });
 });
+modalOverlay.addEventListener("click", (e) => {
+  if (e.target === modalOverlay) {
+    if (abortModalOpen) {
+      closeAbortModal();
+    } else {
+      closeModal();
+    }
+  }
+});
+
+// Abort modal
+abortContinueBtn.addEventListener("click", closeAbortModal);
+abortQuitBtn.addEventListener("click", executeAbortQuit);
 
 // ── Sanity check (development) ─────────────────────────────────────────────
 function runSanityCheck() {

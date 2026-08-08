@@ -194,6 +194,7 @@
           <div class="action-row">
             <button id="hint-btn" class="btn btn-secondary">HINT</button>
             <button id="skip-btn" class="btn btn-secondary">SKIP</button>
+            <button id="abort-btn" class="btn btn-destructive" aria-label="Abort current mission">✕ ABORT</button>
           </div>
           <div id="hint-box" class="info-box hint-box hidden"></div>
           <div id="explanation-box" class="info-box explanation-box hidden" aria-live="polite"></div>
@@ -310,6 +311,34 @@
             <li>In timed modes, reaching the limit <strong>times out</strong> the round (0 points).</li>
             <li>Choose your mode wisely — <strong>Rubric</strong> tests all levels, <strong>Custom</strong> lets you focus.</li>
           </ol>
+        </div>
+      </div>
+
+      <div id="abort-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="abort-title">
+        <div class="modal-header">
+          <h2 id="abort-title" class="modal-title">ABORT CURRENT MISSION?</h2>
+          <button class="modal-close" data-close-modal aria-label="Continue">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="abort-summary">
+            <div class="abort-summary-row">
+              <span class="abort-label">Mode:</span>
+              <span id="abort-mode" class="abort-value"></span>
+            </div>
+            <div class="abort-summary-row">
+              <span class="abort-label">Round:</span>
+              <span id="abort-round" class="abort-value"></span>
+            </div>
+            <div class="abort-summary-row">
+              <span class="abort-label">Current Score:</span>
+              <span id="abort-score" class="abort-value"></span>
+            </div>
+          </div>
+          <p class="abort-message">Your current mission progress and score will be discarded. Are you sure you want to quit?</p>
+          <div class="modal-actions">
+            <button id="abort-continue-btn" class="btn btn-primary" data-abort-action="continue">NO, CONTINUE</button>
+            <button id="abort-quit-btn" class="btn btn-destructive" data-abort-action="quit">YES, QUIT</button>
+          </div>
         </div>
       </div>
 
