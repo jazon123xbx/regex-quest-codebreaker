@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Regex Quest — Codebreaker Challenge</title>
+  <title>Regex Quest — Codebreaker Protocol</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
 
-    <!-- ── Welcome Screen ──────────────────────────────────────────────── -->
+    <!-- ═══ Welcome Screen ═══════════════════════════════════════════════ -->
     <section id="welcome-screen" class="screen active">
       <div class="terminal-window">
         <div class="terminal-bar">
@@ -19,21 +19,24 @@
         </div>
         <div class="terminal-body welcome-body">
           <h1 class="title-glow">REGEX QUEST</h1>
-          <p class="subtitle">Codebreaker Challenge</p>
+          <p class="subtitle">CODEBREAKER PROTOCOL</p>
+          <p class="tagline">Break the pattern. Crack the vault. Become the Codebreaker.</p>
           <div class="divider"></div>
-          <p class="welcome-text">
-            Decode each cipher by entering a string that matches the secret pattern.
-            <br><br>
-            Score up to <strong>10 points</strong> per challenge — the faster you decode, the higher your score.
-            <br><br>
-            9 regular challenges + 1 final Boss await.
-          </p>
-          <button id="start-btn" class="btn btn-primary">START MISSION</button>
+          <div class="mission-briefing">
+            <p>Complete <strong>10 vaults</strong> by entering a string that matches each secret regex pattern.</p>
+            <p>Correct answers score up to <strong>10 points</strong> — 1 point is lost for every elapsed second.</p>
+            <p>The final challenge is the <strong>Boss Vault</strong>.</p>
+          </div>
+          <div class="welcome-actions">
+            <button id="start-btn" class="btn btn-primary btn-start">START MISSION</button>
+            <button id="how-to-play-btn" class="btn btn-secondary">HOW TO PLAY</button>
+            <button id="field-guide-btn" class="btn btn-secondary">REGEX FIELD GUIDE</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ── Game Screen ─────────────────────────────────────────────────── -->
+    <!-- ═══ Game Screen ══════════════════════════════════════════════════ -->
     <section id="game-screen" class="screen">
       <div class="terminal-window">
         <div class="terminal-bar">
@@ -43,27 +46,46 @@
         </div>
         <div class="terminal-body game-body">
 
-          <div class="top-bar">
-            <span id="difficulty" class="badge badge-easy">Easy</span>
-            <span id="progress" class="progress-text">1 / 10</span>
-            <div class="score-timer">
-              <span class="timer-label">Time</span>
-              <span id="timer" class="timer-value">0s</span>
-              <span class="score-label">Score</span>
-              <span id="score" class="score-value">0</span>
+          <!-- HUD -->
+          <div class="hud">
+            <div class="hud-chip">
+              <span class="hud-label">MISSION</span>
+              <span id="hud-challenge" class="hud-value">1 / 10</span>
+            </div>
+            <div class="hud-chip">
+              <span class="hud-label">DIFFICULTY</span>
+              <span id="difficulty" class="badge badge-easy">Easy</span>
+            </div>
+            <div class="hud-chip">
+              <span class="hud-label">TIME</span>
+              <span id="timer" class="hud-value hud-timer">0s</span>
+            </div>
+            <div class="hud-chip">
+              <span class="hud-label">SCORE</span>
+              <span id="score" class="hud-value hud-score">0</span>
+            </div>
+            <div class="hud-chip">
+              <span class="hud-label">HIGH SCORE</span>
+              <span id="high-score-game" class="hud-value hud-high">0</span>
             </div>
           </div>
 
-          <h2 id="challenge-title" class="challenge-title">Vault Code</h2>
-          <p id="challenge-words" class="challenge-words">Exactly three digits</p>
+          <!-- Vault Progress Path -->
+          <div id="vault-progress" class="vault-progress" aria-label="Vault progress"></div>
 
-          <div class="regex-box">
-            <span class="regex-label">Pattern</span>
-            <code id="regex-display" class="regex-code">\\d{3}</code>
+          <!-- Target Regex Card -->
+          <div id="target-card" class="target-card">
+            <div class="target-header">
+              <span class="target-label" id="target-label">TARGET PATTERN</span>
+              <span id="challenge-title" class="challenge-title"></span>
+            </div>
+            <code id="regex-display" class="regex-code"></code>
+            <p id="challenge-words" class="challenge-words"></p>
           </div>
 
           <div id="feedback" class="feedback" aria-live="polite"></div>
 
+          <!-- Input -->
           <div class="input-row">
             <label for="answer-input" class="sr-only">Enter your decoded string</label>
             <input
@@ -89,7 +111,7 @@
       </div>
     </section>
 
-    <!-- ── Results Screen ──────────────────────────────────────────────── -->
+    <!-- ═══ Results Screen ═══════════════════════════════════════════════ -->
     <section id="results-screen" class="screen">
       <div class="terminal-window">
         <div class="terminal-bar">
@@ -99,21 +121,75 @@
         </div>
         <div class="terminal-body results-body">
           <h1 class="title-glow">MISSION COMPLETE</h1>
-          <div class="rank" id="rank-text">B — Apprentice Hacker</div>
+          <div class="rank" id="rank-text">PATTERN SCOUT</div>
           <div class="final-score-row">
             <span class="final-score-label">Final Score</span>
             <span id="final-score" class="final-score-value">0</span>
+          </div>
+          <div class="results-high-score">
+            <span class="results-hs-label">High Score</span>
+            <span id="stat-high-score" class="results-hs-value">0</span>
           </div>
           <div class="stats-grid">
             <div class="stat"><span class="stat-val" id="stat-correct">0</span><span class="stat-lbl">Correct</span></div>
             <div class="stat"><span class="stat-val" id="stat-skipped">0</span><span class="stat-lbl">Skipped</span></div>
             <div class="stat"><span class="stat-val" id="stat-best-streak">0</span><span class="stat-lbl">Best Streak</span></div>
-            <div class="stat"><span class="stat-val" id="stat-high-score">0</span><span class="stat-lbl">High Score</span></div>
+            <div class="stat"><span class="stat-val" id="stat-avg-time">0s</span><span class="stat-lbl">Avg Round Time</span></div>
           </div>
           <button id="play-again-btn" class="btn btn-primary">PLAY AGAIN</button>
         </div>
       </div>
     </section>
+
+    <!-- ═══ How to Play Modal ════════════════════════════════════════════ -->
+    <div id="modal-overlay" class="modal-overlay hidden" role="presentation">
+      <div id="how-to-play-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="htp-title">
+        <div class="modal-header">
+          <h2 id="htp-title" class="modal-title">HOW TO PLAY</h2>
+          <button class="modal-close" data-close-modal aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <ol class="modal-steps">
+            <li>Read the <strong>target regex pattern</strong> displayed on the card.</li>
+            <li>Enter a string that <strong>matches the complete pattern</strong>.</li>
+            <li>Press <strong>Decode</strong> or hit <strong>Enter</strong> to submit.</li>
+            <li>Correct answers earn up to <strong>10 points</strong>.</li>
+            <li>Each elapsed second removes <strong>1 point</strong> from your reward.</li>
+            <li>Incorrect answers can be <strong>retried</strong> with no penalty.</li>
+            <li><strong>Skip</strong> awards 0 points and reveals the explanation.</li>
+            <li>Crack all <strong>10 vaults</strong> — including the Boss — to finish the mission.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- ═══ Regex Field Guide Modal ════════════════════════════════════ -->
+      <div id="field-guide-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="fg-title">
+        <div class="modal-header">
+          <h2 id="fg-title" class="modal-title">REGEX FIELD GUIDE</h2>
+          <button class="modal-close" data-close-modal aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-grid">
+            <div class="guide-item"><code>\d</code><span>Digit (0-9)</span></div>
+            <div class="guide-item"><code>\w</code><span>Word character (a-z, A-Z, 0-9, _)</span></div>
+            <div class="guide-item"><code>[A-Z]</code><span>Uppercase A through Z</span></div>
+            <div class="guide-item"><code>[a-z]</code><span>Lowercase a through z</span></div>
+            <div class="guide-item"><code>[0-9]</code><span>Digit range 0 through 9</span></div>
+            <div class="guide-item"><code>.</code><span>Any single character</span></div>
+            <div class="guide-item"><code>+</code><span>One or more of the preceding</span></div>
+            <div class="guide-item"><code>*</code><span>Zero or more of the preceding</span></div>
+            <div class="guide-item"><code>?</code><span>Optional (zero or one)</span></div>
+            <div class="guide-item"><code>{3}</code><span>Exactly three of the preceding</span></div>
+            <div class="guide-item"><code>{2,5}</code><span>Two through five of the preceding</span></div>
+            <div class="guide-item"><code>^</code><span>Start of string</span></div>
+            <div class="guide-item"><code>$</code><span>End of string</span></div>
+            <div class="guide-item"><code>|</code><span>OR — alternation</span></div>
+            <div class="guide-item"><code>(...)</code><span>Group / capture</span></div>
+            <div class="guide-item"><code>[abc]</code><span>One character from the set</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </div>
 

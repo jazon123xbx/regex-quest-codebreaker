@@ -12,6 +12,9 @@ let streak = 0;
 let bestStreak = 0;
 let correctCount = 0;
 let skippedCount = 0;
+let responseTimes = [];
+let modalOpen = false;
+let modalTriggerButton = null;
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
@@ -27,7 +30,7 @@ const input = $("#answer-input");
 
 const timerEl = $("#timer");
 const scoreEl = $("#score");
-const progressEl = $("#progress");
+const hudChallengeEl = $("#hud-challenge");
 const difficultyEl = $("#difficulty");
 const titleEl = $("#challenge-title");
 const wordsEl = $("#challenge-words");
@@ -35,13 +38,26 @@ const hintEl = $("#hint-box");
 const feedbackEl = $("#feedback");
 const explanationEl = $("#explanation-box");
 const regexDisplayEl = $("#regex-display");
+const targetCardEl = $("#target-card");
+const targetLabelEl = $("#target-label");
+const highScoreGameEl = $("#high-score-game");
+const vaultProgressEl = $("#vault-progress");
 
 const finalScoreEl = $("#final-score");
 const correctEl = $("#stat-correct");
 const skippedEl = $("#stat-skipped");
 const bestStreakEl = $("#stat-best-streak");
 const highScoreEl = $("#stat-high-score");
+const avgTimeEl = $("#stat-avg-time");
 const rankEl = $("#rank-text");
+
+// Modal refs
+const modalOverlay = $("#modal-overlay");
+const howToPlayModal = $("#how-to-play-modal");
+const fieldGuideModal = $("#field-guide-modal");
+const howToPlayBtn = $("#how-to-play-btn");
+const fieldGuideBtn = $("#field-guide-btn");
+const modalCloseBtns = document.querySelectorAll("[data-close-modal]");
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function startTimer() {
@@ -74,6 +90,40 @@ function showScreen(screen) {
   screen.classList.add("active");
 }
 
+// ── Progress rendering ──────────────────────────────────────────────────────
+function renderProgress() {
+  vaultProgressEl.innerHTML = "";
+  for (let i = 0; i < challenges.length; i++) {
+    const ch = challenges[i];
+    const isBoss = ch.level === "boss";
+    const isCompleted = i < currentChallenge;
+    const isCurrent = i === currentChallenge;
+
+    const node = document.createElement("div");
+    node.className = "vault-node";
+
+    const dot = document.createElement("div");
+    dot.className = "vault-dot";
+    if (isBoss) dot.classList.add("boss-node");
+    if (isCompleted) dot.classList.add("completed");
+    else if (isCurrent) dot.classList.add("current");
+    else dot.classList.add("upcoming");
+
+    dot.textContent = isBoss ? "★" : (i + 1);
+    node.appendChild(dot);
+
+    vaultProgressEl.appendChild(node);
+
+    // Connector line (not after last node)
+    if (i < challenges.length - 1) {
+      const line = document.createElement("div");
+      line.className = "vault-line";
+      if (isCompleted) line.classList.add("completed");
+      vaultProgressEl.appendChild(line);
+    }
+  }
+}
+
 // ── Game setup ───────────────────────────────────────────────────────────────
 function buildGame() {
   challenges = buildChallengeSet();
@@ -86,6 +136,7 @@ function resetState() {
   bestStreak = 0;
   correctCount = 0;
   skippedCount = 0;
+  responseTimes = [];
 }
 
 // ── Render challenge ─────────────────────────────────────────────────────────
@@ -97,13 +148,26 @@ function renderChallenge() {
   difficultyEl.textContent = isBoss ? "BOSS" : ch.level.charAt(0).toUpperCase() + ch.level.slice(1);
   difficultyEl.className = "badge badge-" + (isBoss ? "boss" : ch.level);
 
-  // progress
-  progressEl.textContent = `${currentChallenge + 1} / ${challenges.length}`;
+  // HUD
+  hudChallengeEl.textContent = `${currentChallenge + 1} / ${challenges.length}`;
+  highScoreGameEl.textContent = getHighScore();
 
-  // content
+  // target card
   titleEl.textContent = ch.title;
   wordsEl.textContent = ch.words;
   regexDisplayEl.textContent = ch.pattern;
+
+  // boss styling
+  if (isBoss) {
+    targetCardEl.classList.add("boss-card");
+    targetLabelEl.textContent = "FINAL VAULT — BOSS REGEX";
+  } else {
+    targetCardEl.classList.remove("boss-card");
+    targetLabelEl.textContent = "TARGET PATTERN";
+  }
+
+  // progress
+  renderProgress();
 
   // reset UI
   hintEl.classList.add("hidden");
@@ -123,6 +187,8 @@ function renderChallenge() {
 
 // ── Submit ───────────────────────────────────────────────────────────────────
 function handleSubmit() {
+  if (modalOpen) return;
+
   const ch = challenges[currentChallenge];
   const raw = input.value;
 
@@ -142,9 +208,10 @@ function handleSubmit() {
     correctCount++;
     streak++;
     if (streak > bestStreak) bestStreak = streak;
+    responseTimes.push(elapsedSeconds);
 
     feedbackEl.className = "feedback correct";
-    feedbackEl.textContent = `Correct! +${points} pts`;
+    feedbackEl.textContent = "ACCESS GRANTED — +" + points + " pts";
 
     showExplanation(ch);
     input.disabled = true;
@@ -157,7 +224,7 @@ function handleSubmit() {
     streak = 0;
 
     feedbackEl.className = "feedback incorrect";
-    feedbackEl.textContent = "Incorrect — try again.";
+    feedbackEl.textContent = "ACCESS DENIED — TRY AGAIN";
 
     // shake animation on input
     input.classList.add("shake");
@@ -166,13 +233,16 @@ function handleSubmit() {
 }
 
 function handleSkip() {
+  if (modalOpen) return;
+
   const ch = challenges[currentChallenge];
   stopTimer();
   skippedCount++;
   streak = 0;
+  responseTimes.push(elapsedSeconds);
 
   feedbackEl.className = "feedback skip";
-  feedbackEl.textContent = "Skipped — 0 pts";
+  feedbackEl.textContent = "SKIPPED — 0 pts";
 
   showExplanation(ch);
   input.disabled = true;
@@ -184,6 +254,8 @@ function handleSkip() {
 }
 
 function handleHint() {
+  if (modalOpen) return;
+
   const ch = challenges[currentChallenge];
   hintEl.textContent = "Hint: " + ch.hint;
   hintEl.classList.remove("hidden");
@@ -191,7 +263,8 @@ function handleHint() {
 }
 
 function showExplanation(ch) {
-  explanationEl.textContent = ch.explanation;
+  const isBoss = ch.level === "boss";
+  explanationEl.textContent = (isBoss ? "PATTERN BREAKDOWN: " : "WHY IT MATCHES: ") + ch.explanation;
   explanationEl.classList.remove("hidden");
 }
 
@@ -214,6 +287,15 @@ function showResults() {
   skippedEl.textContent = skippedCount;
   bestStreakEl.textContent = bestStreak;
 
+  // average round time
+  if (responseTimes.length > 0) {
+    const avg = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+    avgTimeEl.textContent = avg.toFixed(1) + "s";
+  } else {
+    avgTimeEl.textContent = "—";
+  }
+
+  // high score
   const highScore = getHighScore();
   if (totalScore > highScore) {
     setHighScore(totalScore);
@@ -222,15 +304,63 @@ function showResults() {
     highScoreEl.textContent = highScore;
   }
 
-  // rank
+  // rank (display only, never modifies score)
   const pct = totalScore / 100;
-  if (pct >= 0.9) rankEl.textContent = "S — Codebreaker Elite";
-  else if (pct >= 0.7) rankEl.textContent = "A — Vault Cracker";
-  else if (pct >= 0.5) rankEl.textContent = "B — Apprentice Hacker";
-  else if (pct >= 0.3) rankEl.textContent = "C — Padawan Scripter";
-  else rankEl.textContent = "D — Keep Training";
+  if (pct >= 0.9)      rankEl.textContent = "MASTER CODEBREAKER";
+  else if (pct >= 0.7) rankEl.textContent = "REGEX SPECIALIST";
+  else if (pct >= 0.5) rankEl.textContent = "CIPHER AGENT";
+  else if (pct >= 0.3) rankEl.textContent = "PATTERN SCOUT";
+  else                  rankEl.textContent = "ROOKIE DECODER";
 
   showScreen(resultsScreen);
+}
+
+// ── Modals ───────────────────────────────────────────────────────────────────
+function openModal(modalEl) {
+  modalOpen = true;
+  modalTriggerButton = document.activeElement;
+  modalOverlay.classList.remove("hidden");
+  modalEl.classList.remove("hidden");
+  const closeBtn = modalEl.querySelector(".modal-close");
+  if (closeBtn) closeBtn.focus();
+  document.addEventListener("keydown", handleModalKeydown);
+}
+
+function closeModal() {
+  modalOpen = false;
+  howToPlayModal.classList.add("hidden");
+  fieldGuideModal.classList.add("hidden");
+  modalOverlay.classList.add("hidden");
+  document.removeEventListener("keydown", handleModalKeydown);
+  if (
+    modalTriggerButton &&
+    modalTriggerButton.isConnected &&
+    typeof modalTriggerButton.focus === "function"
+  ) {
+    modalTriggerButton.focus();
+  }
+
+  modalTriggerButton = null;
+}
+
+function handleModalKeydown(e) {
+  if (e.key === "Escape") {
+    closeModal();
+    return;
+  }
+  // Trap focus inside open modal
+  if (e.key === "Tab") {
+    const activeModal = howToPlayModal.classList.contains("hidden") ? fieldGuideModal : howToPlayModal;
+    const focusable = activeModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -252,6 +382,13 @@ input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !submitBtn.disabled) {
     handleSubmit();
   }
+});
+
+howToPlayBtn.addEventListener("click", () => openModal(howToPlayModal));
+fieldGuideBtn.addEventListener("click", () => openModal(fieldGuideModal));
+modalCloseBtns.forEach((btn) => btn.addEventListener("click", closeModal));
+modalOverlay.addEventListener("click", (e) => {
+  if (e.target === modalOverlay) closeModal();
 });
 
 // ── Sanity check (development) ───────────────────────────────────────────────
