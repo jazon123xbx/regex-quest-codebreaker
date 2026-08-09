@@ -59,66 +59,6 @@
             <div class="mode-desc">10 Hard challenges</div>
             <div class="mode-timer">12s per round</div>
           </button>
-          <button class="mode-card" data-mode="custom">
-            <div class="mode-icon">C</div>
-            <div class="mode-name">CUSTOM</div>
-            <div class="mode-desc">Configure your mission</div>
-            <div class="mode-timer">Your choice</div>
-          </button>
-        </div>
-
-        <!-- Custom Config Panel (hidden by default) -->
-        <div id="custom-config" class="custom-config hidden">
-          <div class="config-row">
-            <label class="config-label" for="custom-difficulty">DIFFICULTY</label>
-            <select id="custom-difficulty" class="config-select">
-              <option value="mixed">MIXED</option>
-              <option value="easy">EASY</option>
-              <option value="medium">MEDIUM</option>
-              <option value="hard">HARD</option>
-            </select>
-          </div>
-          <div class="config-row">
-            <label class="config-label">QUESTIONS</label>
-            <div class="radio-group">
-              <label class="radio-option">
-                <input type="radio" name="custom-count" value="5">
-                <span class="radio-mark"></span>
-                5
-              </label>
-              <label class="radio-option" id="count-10-option">
-                <input type="radio" name="custom-count" value="10" checked>
-                <span class="radio-mark"></span>
-                10
-              </label>
-            </div>
-          </div>
-          <div class="config-row">
-            <label class="config-label">TIMER</label>
-            <div class="radio-group">
-              <label class="radio-option">
-                <input type="radio" name="custom-timer" value="10">
-                <span class="radio-mark"></span>
-                10s
-              </label>
-              <label class="radio-option">
-                <input type="radio" name="custom-timer" value="15">
-                <span class="radio-mark"></span>
-                15s
-              </label>
-              <label class="radio-option">
-                <input type="radio" name="custom-timer" value="20">
-                <span class="radio-mark"></span>
-                20s
-              </label>
-              <label class="radio-option">
-                <input type="radio" name="custom-timer" value="unlimited" checked>
-                <span class="radio-mark"></span>
-                Unlimited
-              </label>
-            </div>
-          </div>
-          <div id="custom-validation" class="config-validation hidden"></div>
         </div>
 
         <button id="begin-mission-btn" class="btn btn-primary btn-start">BEGIN MISSION</button>
@@ -313,7 +253,7 @@
             <li>Incorrect answers can be <strong>retried</strong> with no penalty (timer keeps running).</li>
             <li><strong>Skip</strong> awards 0 points and reveals the explanation.</li>
             <li>In timed modes, reaching the limit <strong>times out</strong> the round (0 points).</li>
-            <li>Choose your mode wisely — <strong>Rubric</strong> tests all levels, <strong>Custom</strong> lets you focus.</li>
+            <li>Choose your mode wisely — <strong>Rubric</strong> tests all levels.</li>
           </ol>
         </div>
       </div>

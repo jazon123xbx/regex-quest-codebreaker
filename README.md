@@ -26,11 +26,12 @@ regex-quest/
 | **Easy** | Up to 6 | 20s per round | Focus on beginner patterns |
 | **Medium** | Up to 8 | 15s per round | Intermediate patterns |
 | **Hard** | Up to 10 | 12s per round | Advanced patterns |
-| **Custom** | 5 or 10 | 10s / 15s / 20s / Unlimited | Configure difficulty, question count, and timer |
+
+> Custom Mode is not exposed in the player-facing UI. Its mission builder is retained internally for testing only.
 
 ## Features
 
-- 5 mission modes with unique pool sizes and timer configurations
+- 4 playable mission modes: Rubric, Easy, Medium, Hard
 - Command-center grid layout (responsive: desktop → tablet → mobile)
 - Circular SVG timer with countdown/elapsed modes and warning/critical states
 - Dynamic progress path matching question count
@@ -125,8 +126,8 @@ node test.mjs
 Verifies:
 - All 216 challenge pass/fail cases compile and match correctly
 - Selection invariants hold across 50 iterations (Rubric mode)
-- All 5 mission modes produce correct structure, pool sizes, and timer configs
-- Pool uniqueness across 50 iterations × 5 modes
+- All 5 mode configurations (4 playable + internal Custom builder) produce correct structure, pool sizes, and timer configs
+- Pool uniqueness across 50 iterations × 5 mode configurations
 - Boss placement only in Rubric mode
 - Scoring formula edge cases
 - **Total: 340 automated test cases**
@@ -140,8 +141,10 @@ Pure function in `challenges.js` that generates challenges for any mode:
 ```js
 buildMissionSet({ mode: "rubric" })
 buildMissionSet({ mode: "easy", questionCount: 5 })
-buildMissionSet({ mode: "custom", difficulty: "hard", questionCount: 10, roundLimit: 12 })
+buildMissionSet({ mode: "custom", difficulty: "hard", questionCount: 10, roundLimit: 12 }) // internal/test-only
 ```
+
+The `custom` mode builder is retained for internal testing only and is not exposed in the player-facing UI.
 
 Returns `{ challenges: [...], config: { mode, difficulty, questionCount, roundLimit } }`.
 

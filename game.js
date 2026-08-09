@@ -1,8 +1,7 @@
 import { fullMatch } from "./regex-utils.js";
 import {
   buildMissionSet,
-  allChallenges,
-  poolSizes
+  allChallenges
 } from "./challenges.js";
 import {
   getHighScore,
@@ -128,10 +127,6 @@ const fieldGuideBtn = $("#field-guide-btn");
 const beginMissionBtn = $("#begin-mission-btn");
 const backToWelcomeBtn = $("#back-to-welcome-btn");
 const modeCards = document.querySelectorAll(".mode-card");
-const customConfig = $("#custom-config");
-const customDifficultySelect = $("#custom-difficulty");
-const count10Option = $("#count-10-option");
-const customValidation = $("#custom-validation");
 
 // Game HUD
 const hudMode = $("#hud-mode");
@@ -300,60 +295,11 @@ function showScreen(screen) {
 function selectMode(mode) {
   gameSettings.mode = mode;
   // Reset to undefined so buildMissionSet uses the mode defaults.
-  if (mode !== "custom") {
-    gameSettings.questionCount = undefined;
-    gameSettings.roundLimit = undefined;
-  }
+  gameSettings.questionCount = undefined;
+  gameSettings.roundLimit = undefined;
   modeCards.forEach((c) => {
     c.classList.toggle("active", c.dataset.mode === mode);
   });
-  // Show/hide the Custom configuration panel.
-  if (mode === "custom") {
-    customConfig.classList.remove("hidden");
-    updateCustomConfig();
-  } else {
-    customConfig.classList.add("hidden");
-  }
-}
-
-// Keeps the player from requesting more questions than a pool has.
-function updateCustomConfig() {
-  const diff = customDifficultySelect.value;
-  const poolSize = diff === "mixed"
-    ? poolSizes.easy + poolSizes.medium + poolSizes.hard
-    : poolSizes[diff] || 0;
-  // Disable the "10" option when the pool is smaller than 10.
-  const count10Input = count10Option.querySelector("input");
-  if (poolSize < 10) {
-    count10Input.disabled = true;
-    count10Option.classList.add("disabled");
-    // If "10" was selected, fall back to "5".
-    if (count10Input.checked) {
-      count10Input.checked = false;
-      document.querySelector('input[name="custom-count"][value="5"]').checked = true;
-    }
-    customValidation.textContent = `Max ${poolSize} questions for ${diff.toUpperCase()} pool`;
-    customValidation.classList.remove("hidden");
-  } else {
-    count10Input.disabled = false;
-    count10Option.classList.remove("disabled");
-    customValidation.classList.add("hidden");
-  }
-}
-
-// Reads the Custom mode controls into a mission settings object.
-function getCustomSettings() {
-  const diff = customDifficultySelect.value;
-  const countInput = document.querySelector('input[name="custom-count"]:checked');
-  const timerInput = document.querySelector('input[name="custom-timer"]:checked');
-  const count = countInput ? Number(countInput.value) : 5;
-  const timerVal = timerInput ? timerInput.value : "unlimited";
-  return {
-    mode: "custom",
-    difficulty: diff,
-    questionCount: count,
-    roundLimit: timerVal === "unlimited" ? null : Number(timerVal)
-  };
 }
 
 // Resets every counter/flag that describes one mission or one round.
@@ -994,7 +940,6 @@ fieldGuideBtn.addEventListener("click", () => openModal(fieldGuideModal));
 modeCards.forEach((card) => {
   card.addEventListener("click", () => selectMode(card.dataset.mode));
 });
-customDifficultySelect.addEventListener("change", updateCustomConfig);
 beginMissionBtn.addEventListener("click", startGame);
 backToWelcomeBtn.addEventListener("click", () => showScreen(welcomeScreen));
 

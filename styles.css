@@ -239,7 +239,7 @@ body {
 
 .mode-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.7rem;
   margin-bottom: 1.5rem;
 }
@@ -310,95 +310,6 @@ body {
   font-size: 0.6rem;
   color: var(--cyan-dim);
   letter-spacing: 0.05em;
-}
-
-/* ── Custom Config ────────────────────────────────────────────────────────── */
-.custom-config {
-  background: var(--panel-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.2rem 1.5rem;
-  margin-bottom: 1.5rem;
-  text-align: left;
-}
-
-.config-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.8rem;
-}
-.config-row:last-child { margin-bottom: 0; }
-
-.config-label {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.1em;
-  min-width: 90px;
-}
-
-.config-select {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  padding: 0.4rem 0.8rem;
-  cursor: pointer;
-  outline: none;
-}
-.config-select:focus { border-color: var(--cyan-dim); }
-
-.radio-group {
-  display: flex;
-  gap: 0.8rem;
-}
-
-.radio-option {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.radio-option input { display: none; }
-
-.radio-mark {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.radio-option input:checked + .radio-mark {
-  border-color: var(--cyan);
-  background: var(--cyan);
-  box-shadow: inset 0 0 0 3px var(--panel);
-}
-
-.radio-option.disabled {
-  opacity: 0.35;
-  pointer-events: none;
-}
-
-.config-validation {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--warning);
-  margin-top: 0.6rem;
-  padding: 0.4rem 0.6rem;
-  background: rgba(245, 158, 11, 0.08);
-  border-radius: 4px;
 }
 
 .back-link {
@@ -1280,7 +1191,7 @@ body {
   }
 
   .mode-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .timer-ring-wrapper {
